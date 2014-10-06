@@ -108,6 +108,12 @@ class Net:
         xml = self.as_xml()
         return load_net(xml, self.project, NewIdLoader(self.project))
 
+    def copy_and_return_idtable(self):
+        xml = self.as_xml()
+        idloader = NewIdLoader(self.project)
+        new_net = load_net(xml, self.project, idloader)
+        return new_net, idloader.idtable
+
     def get_item(self, id):
         for i in self.items:
             if i.get_id() == id:
