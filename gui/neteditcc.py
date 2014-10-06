@@ -343,9 +343,49 @@ def contextmenu_place(config, item, position):
         ("Delete", lambda w: delete_item(config, place)),
     ]
 
+def transition_test(transition):
+    net = transition.net
+    project = net.project
+    new_net, idtable = net.copy_and_return_idtable()
+    print idtable
+    transition_id = idtable[transition.id]
+    print transition_id
+    output_places = []
+    input_places = []
+    places = []
+
+    for item in new_net.items[:]:
+        if item.is_edge() and item.to_item.id==transition_id:
+            input_places.append(item.from_item.id)
+            continue
+
+        if item.is_edge() and item.from_item.id == transition_id:
+            output_places.append(item.to_item.id)
+            continue
+
+        if item.is_place():
+            places.append(item)
+            continue
+
+        if item.id != transition_id:
+            new_net.delete_item(item)
+
+    for item in places[:]: # needs a copy becouse of modification
+        if item.id not in output_places and item.id not in input_places:
+            new_net.delete_item(item)
+
+    new_net.set_name("Test - "+transition.get_name())
+
+    check_transition = new_net.add_transition((0,0))
+    check_transition.set_name("Checking")
+
+    project.add_net(new_net)
+    project.set_build_net(new_net)
+
 def contextmenu_transition(config, item, position):
     transition = item.owner
     return [
+        ("Generate a test", lambda w: transition_test(transition)),
         ("Resize", lambda w: resize_item(config, item, position)),
         ("Edit code",
             lambda w: config.neteditor.transition_edit_callback(transition)),
