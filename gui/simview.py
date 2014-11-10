@@ -23,6 +23,7 @@ import gtkutils
 import mainwindow
 import controlseq
 from netview import NetView, NetViewCanvasConfig
+import neteditcc
 
 class SimViewTab(mainwindow.Tab):
 
@@ -60,6 +61,20 @@ class SimCanvasConfig(NetViewCanvasConfig):
             self.simulation.receive(process_id, origin_id)
         else:
             NetViewCanvasConfig.on_item_click(self, item, position)
+
+    def on_mouse_right_down(self, event, position):#activating context menu in simulation
+        print "sim_config right down"
+        item = self.get_item_at_position(position)
+
+        if item:
+            self.select_item(item)
+            if item.kind=="box":
+                if item.owner.is_transition():
+                    print "transition"
+                    menu = contextmenu_transition_test(self,item,position)
+                    if menu:
+                        gtkutils.show_context_menu(menu, event)
+            return
 
     def check_last_active(self):
         if not self.simulation.is_last_instance_active():
@@ -210,3 +225,8 @@ def connect_dialog(mainwindow):
         return None
     finally:
         dlg.destroy()
+
+def contextmenu_transition_test(config, item, position):
+        transition = item.owner
+        return [
+            ("Generate a test", lambda w: neteditcc.transition_test(transition))]

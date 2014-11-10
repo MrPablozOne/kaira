@@ -353,32 +353,24 @@ def transition_test(transition):
     output_places = []
     input_places = []
     places = []
-
     for item in new_net.items[:]:
         if item.is_edge() and item.to_item.id==transition_id:
             input_places.append(item.from_item.id)
             continue
-
         if item.is_edge() and item.from_item.id == transition_id:
             output_places.append(item.to_item.id)
             continue
-
         if item.is_place():
             places.append(item)
             continue
-
         if item.id != transition_id:
             new_net.delete_item(item)
-
     for item in places[:]: # needs a copy becouse of modification
         if item.id not in output_places and item.id not in input_places:
             new_net.delete_item(item)
-
     new_net.set_name("Test - "+transition.get_name())
-
     check_transition = new_net.add_transition((0,0))
     check_transition.set_name("Checking")
-
     project.add_net(new_net)
     project.set_build_net(new_net)
 
