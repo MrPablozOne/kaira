@@ -61,6 +61,27 @@ class SimCanvasConfig(NetViewCanvasConfig):
         else:
             NetViewCanvasConfig.on_item_click(self, item, position)
 
+    def on_mouse_right_down(self, event, position):#activating context menu in simulation
+        item_on_position = self.get_item_at_position(position)
+
+        if item_on_position:
+            self.select_item(item_on_position)
+            if item_on_position.kind=="box":
+                if item_on_position.owner.is_transition():#if transition, get process_id and create menu
+                    transition = item_on_position.owner
+                    perspective = self.view.get_perspective()
+                    ids = [ i.process_id for i in perspective.net_instances.values()
+                        if i.enabled_transitions is not None and transition.id
+                        in i.enabled_transitions ]
+                    if not ids:
+                        return
+                    process_id = self.simulation.random.choice(ids)
+
+                    menu = contextmenu_transition_test(self,item_on_position,position,self.simulation,process_id)
+                    if menu:
+                        gtkutils.show_context_menu(menu, event)
+            return
+
     def check_last_active(self):
         if not self.simulation.is_last_instance_active():
             self.simview.app.console_write("A history of simulation is displayed, it cannot be changed\n", "error")
@@ -210,3 +231,9 @@ def connect_dialog(mainwindow):
         return None
     finally:
         dlg.destroy()
+
+def contextmenu_transition_test(config, item, position, simulation, process_id):
+        transition = item.owner
+        return [
+            ("Generate a test", lambda w: simulation.emit_event("create_test",transition)),
+            ("Binding transition", lambda w: simulation.store_binding(transition.id, process_id))]
