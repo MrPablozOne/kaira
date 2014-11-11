@@ -351,6 +351,7 @@ def transition_test(transition):
     transition_id = idtable[transition.id]
     print transition_id
     output_places = []
+    output_item = []
     input_places = []
     places = []
     for item in new_net.items[:]:
@@ -359,6 +360,7 @@ def transition_test(transition):
             continue
         if item.is_edge() and item.from_item.id == transition_id:
             output_places.append(item.to_item.id)
+            output_item.append(item.to_item)
             continue
         if item.is_place():
             places.append(item)
@@ -371,6 +373,9 @@ def transition_test(transition):
     new_net.set_name("Test - "+transition.get_name())
     check_transition = new_net.add_transition((0,0))
     check_transition.set_name("Checking")
+    for item_id in output_item:
+        edge = new_net.add_edge(item_id,check_transition,[])
+        print edge.get_all_points()
     project.add_net(new_net)
     project.set_build_net(new_net)
 
