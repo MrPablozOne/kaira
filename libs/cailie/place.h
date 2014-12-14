@@ -2,6 +2,7 @@
 #define CAILIE_PLACE_H
 
 #include "token.h"
+#include <algorithm>
 #include <map>
 
 namespace ca {
@@ -67,7 +68,8 @@ template <typename T> class Place {
 		}
 
 	protected:
-		TokenList<T> token_list;
+	   TokenList<T> token_list;
+
 };
 
 

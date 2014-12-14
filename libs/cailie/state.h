@@ -472,6 +472,13 @@ namespace ca {
 					return quit;
 			}
 
+            bool store_binding(int process_id, TransitionDef *transition_def,
+                               const std::string &dir, const std::string &mode) {
+
+                StateThread thread(this, process_id);
+                return transition_def->store_binding(&thread, nets[process_id], dir, mode);
+            }
+
 		protected:
 			virtual TraceLog* get_tracelog(int process_id) {
 				return NULL;

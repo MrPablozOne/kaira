@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <unistd.h>
 
@@ -220,6 +221,44 @@ void Listener::process_commands(FILE *comm_in, FILE *comm_out)
 			write_status(comm_out, result);
 			continue;
 		}
+
+        if (check_prefix(line, "STORE_BINDING")) {
+            if (processes[0]->quit_flag) {
+                fprintf(comm_out, "Process is terminated\n");
+                continue;
+            }
+
+            int transition_id;
+            int process_id;
+            char dir[1000];
+            char mode[2];
+
+            if (4 != sscanf(line, "STORE_BINDING %i %i %s %s", &transition_id, &process_id, dir, mode)) {
+                fprintf(comm_out, "Invalid parameters\n");
+                continue;
+            }
+
+            if (process_id < 0 || process_id >= process_count) {
+                fprintf(comm_out, "There is no such process\n");
+                continue;
+            }
+
+            TransitionDef *transition_def = state->get_net_def()->get_transition_def(transition_id);
+            if (transition_def == NULL) {
+                fprintf(comm_out, "Invalid transition\n");
+                continue;
+            }
+
+            struct stat sb;
+            if (stat(dir, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+                fprintf(comm_out, "Directory for testing data does not exists.\n");
+                continue;
+            }
+
+            bool result = state->store_binding(process_id, transition_def, dir, mode);
+            write_status(comm_out, result);
+            continue;
+        }
 
 		if (check_prefix(line, "FINISH")) {
 			if (processes[0]->quit_flag) {

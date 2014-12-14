@@ -76,6 +76,9 @@ class TransitionDef {
 			return false;
 		}
 
+        virtual bool store_binding(ThreadBase *thread, NetBase *net,
+                                   const std::string &dir, const std::string &mode) = 0;
+
 	protected:
 		int id;
 		TransitionType type;

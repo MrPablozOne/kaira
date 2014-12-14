@@ -4,6 +4,8 @@
 
 #include "thread.h"
 #include "net.h"
+#include "token.h"
+#include "place.h"
 
 #include <vector>
 
@@ -44,6 +46,7 @@ class Context {
 			}
 		}
 
+
 	protected:
 		ThreadBase *thread;
 		NetBase *net;
@@ -53,6 +56,80 @@ class Context {
 	inline std::vector<int> all_processes(Context &ctx) {
 		return range(0, ctx.process_count());
 	}
+
+    template <typename T>
+    void store(Place<T> &place,
+               const std::string &path,
+               const std::string &mode,
+               const bool all=false) {
+
+        FILE *f = fopen(path.c_str(), mode.c_str());
+        if (f == NULL) {
+            perror("Unable to open for storing place data.\n");
+            exit(-1);
+        }
+
+        Token<T> *t = place.begin();
+        do {
+            if (t == NULL) {
+                break;
+            }
+            Packer packer;
+            ca::pack(packer, t->value);
+            size_t size = packer.get_size();
+            fwrite(&size, sizeof(size_t), 1, f);
+            fwrite(packer.get_buffer(), 1, size, f);
+
+            t = place.next(t);
+        } while (all); // bulk edge
+
+        fclose(f);
+    }
+
+    template<typename T>
+    void load(const std::string &path, TokenList<T> &token_list) {
+
+       FILE *f = fopen(path.c_str(), "rb");
+       if (f == NULL) {
+           perror("Unable to open file with place data.\n");
+           exit(-1);
+       }
+
+       size_t pos = 0;
+
+       // get size of file
+       size_t f_size;
+       fseek(f, 0, SEEK_END);
+       f_size = ftell(f);
+       rewind(f);
+
+       size_t n;
+       size_t size;
+       while (pos < f_size) { // unpack stored data data
+           n = fread(&size, sizeof(size_t), 1, f);
+           if (n != 1) {
+               perror("Place initialization from file; reading data size.\n");
+               exit(-1);
+           }
+           pos += n * sizeof(size_t);
+
+           char *buffer = (char *) malloc(size);
+           n = fread(buffer, 1, size, f);
+           if (n != size) {
+               perror("Place initialization from file; reading data.\n");
+               exit(-1);
+           }
+           pos += n;
+
+           T value;
+           Unpacker unpacker(buffer);
+           ca::unpack(unpacker, value);
+           token_list.add(value); // add value to place
+
+           free(buffer);
+       }
+       fclose(f);
+   }
 
 }
 

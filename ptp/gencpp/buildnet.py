@@ -170,6 +170,8 @@ def write_transition_forward(builder, tr):
     builder.line("ca::Binding* fire_phase1(ca::ThreadBase *thread, ca::NetBase *net);")
     builder.line("void fire_phase2(ca::ThreadBase *thread, ca::NetBase *net, ca::Binding *data);")
     builder.line("bool is_enable(ca::ThreadBase *thread, ca::NetBase *net);")
+    builder.line("bool store_binding(ca::ThreadBase *thread, ca::NetBase *net, const std::string &dir, const std::string &mode);")
+
     if tr.collective:
         builder.line("bool is_blocked(ca::Binding *data);")
     if builder.pack_bindings:
@@ -180,12 +182,14 @@ def write_transition_forward(builder, tr):
         tr, const_boolean(not tr.has_code()))
     builder.emptyline();
 
-def write_transition_functions(builder,
-                               tr):
+def write_transition_functions(builder, tr):
+
     write_full_fire(builder, tr)
     write_fire_phase1(builder, tr)
     write_fire_phase2(builder, tr)
     write_enable_check(builder, tr)
+    write_store_binding(builder, tr)
+
     if builder.pack_bindings:
         write_pack_binding(builder, tr)
         write_full_fire_with_binding(builder, tr)
@@ -569,6 +573,29 @@ def write_fire_phase1(builder, tr):
     write_enable_pattern_match(builder, tr, w, "return NULL;")
 
     builder.line("return NULL;")
+    builder.block_end()
+
+def write_store_binding(builder, tr):
+    builder.line("bool Transition_{0.id}::store_binding"
+                    "(ca::ThreadBase *$thread, ca::NetBase *$net, "
+                     "const std::string &$dir, const std::string &$mode)", tr)
+
+    builder.block_begin()
+
+    builder.line("{0} *$n = ({0}*) $net;", get_net_class_name(tr.net))
+
+    for inscription in tr.get_token_inscriptions_in():
+        builder.if_begin("$n->place_{0.edge.place.id}.size() < 1", inscription);
+        builder.line("return false;")
+        builder.block_end()
+
+    for inscription in tr.get_token_inscriptions_in():
+        builder.line("ca::store($n->place_{0.edge.place.id}, $dir + \"/{0.edge.place.id}.data\", $mode);", inscription);
+
+    for edge in tr.get_bulk_edges_in():
+        builder.line("ca::store($n->place_{0.id}, $dir + \"/{0.id}.data\", $mode, true);", edge.place);
+
+    builder.line("return true;")
     builder.block_end()
 
 def write_unpack_binding(builder, tr, binding):
