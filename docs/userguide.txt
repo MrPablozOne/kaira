@@ -436,6 +436,8 @@ int process_id() :: returns rank of the process
 int process_count() :: returns number of processes
 void quit() :: terminates the program (or the function call when the project
                is built as a library)
+void store(ca::Place<T> &place, const std::string &path, const std::string &mode, const bool all=false) :: stores place data into a given file. If _all_ is set on _true_ the whole content of place is stored (bulk edge), otherwise only one value is stored.
+void load(cost std::string &path, ca::TokenList<T> &place) :: loads back a stored data into a given place
 
 Class ca::TokenList<T>
 ^^^^^^^^^^^^^^^^^^^^^^
