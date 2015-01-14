@@ -503,6 +503,9 @@ class App:
             simulation.set_callback("shutdown", lambda: sprocess.shutdown())
             simulation.connect("localhost", port)
 
+            #callback create_test, we must know the app->project in simulation
+            simulation.set_callback("create_test", lambda: self.transition_test(self))
+
         simconfig = self.project.get_simconfig()
         if simconfig.parameters_values is None:
             if not self.open_simconfig_dialog():
@@ -770,6 +773,42 @@ class App:
         filename = "net.svg"
         tab.widget.save_as_svg(filename)
         self.console_write("Net saved as '{0}'.\n".format(filename), "success")
+
+    def transition_test(self,transition):
+        net = transition.net
+        project = self.project
+        new_net, idtable = net.copy_and_return_idtable()
+        print idtable
+        transition_id = idtable[transition.id]
+        print transition_id
+        output_places = []
+        output_item = []
+        input_places = []
+        places = []
+        for item in new_net.items[:]:
+            if item.is_edge() and item.to_item.id==transition_id:
+                input_places.append(item.from_item.id)
+                continue
+            if item.is_edge() and item.from_item.id == transition_id:
+                output_places.append(item.to_item.id)
+                output_item.append(item.to_item)
+                continue
+            if item.is_place():
+                places.append(item)
+                continue
+            if item.id != transition_id:
+                new_net.delete_item(item)
+        for item in places[:]: # needs a copy becouse of modification
+            if item.id not in output_places and item.id not in input_places:
+                new_net.delete_item(item)
+        new_net.set_name("Test - "+transition.get_name())
+        check_transition = new_net.add_transition((0,0))
+        check_transition.set_name("Checking")
+        for item_id in output_item:
+            edge = new_net.add_edge(item_id,check_transition,[])
+            print edge.get_all_points()
+        project.add_net(new_net)
+        project.set_build_net(new_net)
 
 if __name__ == "__main__":
     args = sys.argv[1:] # Remove "app.py"

@@ -71,7 +71,7 @@ class SimCanvasConfig(NetViewCanvasConfig):
             if item.kind=="box":
                 if item.owner.is_transition():
                     print "transition"
-                    menu = contextmenu_transition_test(self,item,position)
+                    menu = contextmenu_transition_test(self,item,position,self.simulation)
                     if menu:
                         gtkutils.show_context_menu(menu, event)
             return
@@ -226,7 +226,7 @@ def connect_dialog(mainwindow):
     finally:
         dlg.destroy()
 
-def contextmenu_transition_test(config, item, position):
+def contextmenu_transition_test(config, item, position, simulation):
         transition = item.owner
         return [
-            ("Generate a test", lambda w: neteditcc.transition_test(transition))]
+            ("Generate a test", lambda w: simulation.emit_event("create_test",transition))]
