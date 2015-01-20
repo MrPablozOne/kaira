@@ -347,6 +347,8 @@ def contextmenu_place(config, item, position):
 
 def contextmenu_transition(config, item, position):
     transition = item.owner
+    net = transition.net
+    project = net.project
     return [
         #("Generate a test", lambda w: transition_test(transition)),
         ("Resize", lambda w: resize_item(config, item, position)),
