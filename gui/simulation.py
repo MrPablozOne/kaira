@@ -262,8 +262,12 @@ class Simulation(EventSource):
                 ok_callback()
         if self.controller and self.check_ready():
             command = "FIRE {0} {1} {2}".format(transition_id, process_id, phases)
+            import os
+            print os.path.abspath(".")
+            comm = "STORE_BINDING {0} {1} {2} {3}".format(transition_id, process_id, "./data", "w")
+            self.controller.run_command(comm, None)
             self.state = "runnning"
-            self.controller.run_command_expect_ok(command,
+            self.controller.run_command_expect_ok(comm,
                                                   callback,
                                                   fail_callback,
                                                   self.set_state_ready)

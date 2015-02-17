@@ -788,11 +788,12 @@ class App:
         for item in new_net.items[:]:
             if item.is_edge() and item.to_item.id==transition_id:
                 input_places.append(item.from_item.id)
+
                 continue
-            if item.is_edge() and item.from_item.id == transition_id:
-                output_places.append(item.to_item.id)
-                output_item.append(item.to_item)
-                continue
+            #if item.is_edge() and item.from_item.id == transition_id:
+            #    output_places.append(item.to_item.id)
+            #    output_item.append(item.to_item)
+            #    continue
             if item.is_place():
                 places.append(item)
                 continue
@@ -801,12 +802,15 @@ class App:
         for item in places[:]: # needs a copy becouse of modification
             if item.id not in output_places and item.id not in input_places:
                 new_net.delete_item(item)
+                continue
+            item.set_init_string("")
+            item.set_code("//ca::lode(umisteni," + str(transition_id)+");")
         new_net.set_name("Test - "+transition.get_name())
-        check_transition = new_net.add_transition((0,0))
-        check_transition.set_name("Checking")
-        for item_id in output_item:
-            edge = new_net.add_edge(item_id,check_transition,[])
-            print edge.get_all_points()
+        #check_transition = new_net.add_transition((0,0))
+        #check_transition.set_name("Checking")
+        #for item_id in output_item:
+        #    edge = new_net.add_edge(item_id,check_transition,[])
+        #    print edge.get_all_points()
         project.add_net(new_net)
         project.set_build_net(new_net)
 
