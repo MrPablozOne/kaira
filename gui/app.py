@@ -804,7 +804,8 @@ class App:
                 new_net.delete_item(item)
                 continue
             item.set_init_string("")
-            item.set_code("//ca::lode(umisteni," + str(transition_id)+");")
+            dir = self.project.get_directory() + "/data"
+            #item.set_code("ca::load(\"{0}\", \"{1}\");".format(dir, transition_id))
         new_net.set_name("Test - "+transition.get_name())
         #check_transition = new_net.add_transition((0,0))
         #check_transition.set_name("Checking")

@@ -235,6 +235,24 @@ class Simulation(EventSource):
     def set_state_ready(self):
         self.state = "ready"
 
+    def store_binding(self, transition_id, process_id):
+        def fail_callback():
+            print("command {0} failed.".format(command))
+
+        if self.controller and self.check_ready():
+            dir = self.project.get_directory()+"/data"
+            import os
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+            print dir
+            command = "STORE_BINDING {0} {1} {2} {3}".format(transition_id, process_id, dir, "w")
+            print command
+            self.state = "runnning"
+            self.controller.run_command_expect_ok(command,
+                                                  None,
+                                                  fail_callback,
+                                                  self.set_state_ready)
+
     def fire_transition(self,
                         transition_id,
                         process_id,
@@ -262,12 +280,8 @@ class Simulation(EventSource):
                 ok_callback()
         if self.controller and self.check_ready():
             command = "FIRE {0} {1} {2}".format(transition_id, process_id, phases)
-            import os
-            print os.path.abspath(".")
-            comm = "STORE_BINDING {0} {1} {2} {3}".format(transition_id, process_id, "./data", "w")
-            self.controller.run_command(comm, None)
             self.state = "runnning"
-            self.controller.run_command_expect_ok(comm,
+            self.controller.run_command_expect_ok(command,
                                                   callback,
                                                   fail_callback,
                                                   self.set_state_ready)
