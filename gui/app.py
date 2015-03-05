@@ -33,6 +33,7 @@ import neteditor
 from simconfig import SimConfigDialog
 from projectconfig import ProjectConfig
 from simulation import Simulation
+from net import Place, Edge
 import simview
 import codeedit
 import process
@@ -505,7 +506,7 @@ class App:
 
             #callback create_test, we must know the app->project in simulation
             simulation.set_callback("create-transition-test",
-                                    lambda w: self.transition_test(w))
+                                    lambda w: self.create_transition_test(w))
 
         simconfig = self.project.get_simconfig()
         if simconfig.parameters_values is None:
@@ -779,42 +780,63 @@ class App:
         tab.widget.save_as_svg(filename)
         self.console_write("Net saved as '{0}'.\n".format(filename), "success")
 
-    def transition_test(self,transition):
-        net = transition.net
-        project = self.project
+    def create_transition_test(self, origin_transition):
+        net = origin_transition.net
         new_net, idtable = net.copy_and_return_idtable()
-        transition_id = idtable[transition.id]
-        output_places = []
-        output_item = []
-        input_places = []
-        places = []
-        for item in new_net.items[:]:
-            if item.is_edge() and item.to_item.id==transition_id:
-                input_places.append(item.from_item.id)
+        # translate old transition id to then new one
+        tr_id = idtable[origin_transition.id]
+        tr = new_net.get_item(tr_id)
+        tr_in_edges  = filter(lambda e: e.to_item.id == tr_id, new_net.edges())
+        tr_out_edges = filter(lambda e: e.from_item.id == tr_id,
+                              new_net.edges())
+        tr_in_place_ids = [ edge.from_item.id for edge in tr_in_edges ]
 
-                continue
-            #if item.is_edge() and item.from_item.id == transition_id:
-            #    output_places.append(item.to_item.id)
-            #    output_item.append(item.to_item)
-            #    continue
-            if item.is_place():
-                places.append(item)
-                continue
-            if item.id != transition_id:
+        preserved_item_ids = [tr_id] + tr_in_place_ids + \
+                [ edge.id for edge in tr_in_edges ]
+
+        for edge in tr_out_edges:
+            place_id = edge.to_item.id
+            place = new_net.get_item(place_id)
+            if place_id in tr_in_place_ids:
+                # if the place is also one of the input places, then
+                # it is created the new output one
+                px, py = place.box.get_position()
+                d = place.box.radius * 2
+                new_place = Place(new_net, new_net.new_id(), (px + d, py + d))
+                new_place.set_name(place.get_name())
+                new_place.set_place_type(place.get_place_type())
+                new_net.add_item(new_place)
+                preserved_item_ids.append(new_place.id)
+
+                new_edge = Edge(new_net, new_net.new_id(), tr, new_place, [])
+                new_edge.set_inscription(edge.get_inscription())
+                new_net.add_item(new_edge)
+                preserved_item_ids.append(new_edge.id)
+                place = new_place
+            else:
+                preserved_item_ids.extend([ place_id, edge.id ])
+            place.set_init_string("")
+
+        # remove each element which is not both tested transition or
+        # its input place
+        for item in new_net.items[:]:
+            if item.id not in preserved_item_ids:
                 new_net.delete_item(item)
-        for item in places[:]: # needs a copy becouse of modification
-            if item.id not in output_places and item.id not in input_places:
-                new_net.delete_item(item)
-                continue
-            item.set_init_string("")
-            dir = self.project.get_directory() + "/data"
-            #item.set_code("ca::load(\"{0}\", \"{1}\");".format(dir, transition_id))
-        new_net.set_name("Test - "+transition.get_name())
-        #check_transition = new_net.add_transition((0,0))
-        #check_transition.set_name("Checking")
-        #for item_id in output_item:
-        #    edge = new_net.add_edge(item_id,check_transition,[])
-        #    print edge.get_all_points()
+
+        print self.project.get_filename()
+        # set initialization of places
+        for place_id in tr_in_place_ids:
+            place = new_net.get_item(place_id)
+
+            # set initialization
+            place.set_init_string("")
+            # TODO: open code editor
+            place.set_code("// {0}\n".format(place_id))
+
+        # store as a new project
+        project = self.project # TODO create a totally new project!!
+        new_net.set_name("Test - {0}".format(
+            utils.sanitize_name(origin_transition.get_name_or_id())))
         project.add_net(new_net)
         project.set_build_net(new_net)
 
