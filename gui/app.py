@@ -579,6 +579,10 @@ class App:
                                         sequence.get_commands_size(),
                                         sequence.commands[command]),
                                    "error"))
+        simulation.set_callback("info-message",
+                                lambda line: self.console_write(line, "info"))
+        simulation.set_callback("success-message",
+                                lambda line: self.console_write(line, "success"))
         return simulation
 
     def connect_to_application(self):
