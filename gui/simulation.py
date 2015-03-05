@@ -17,6 +17,7 @@
 #    along with Kaira.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os
 import xml.etree.ElementTree as xml
 import process
 import random
@@ -235,20 +236,41 @@ class Simulation(EventSource):
     def set_state_ready(self):
         self.state = "ready"
 
-    def store_binding(self, transition_id, process_id):
-        def fail_callback():
-            print("command {0} failed.".format(command))
+    def store_binding(self,
+                      transition,
+                      process_id,
+                      ok_callback=None,
+                      fail_callback=None):
+
+        test_dir = os.path.join(self.project.get_directory(), "data")
+        utils.makedir_if_not_exists(test_dir)
+
+        def ok():
+            if ok_callback:
+                ok_callback()
+
+            msg = ("Binding of transition '{0}' was successfully stored into "
+                   "directory '{1}'.\n").format(
+                          utils.sanitize_name(transition.get_name_or_id()),
+                          test_dir)
+            self.emit_event("success-message", msg)
+
+        def fail():
+            if fail_callback:
+                fail_callback()
+            msg = "Binding of transition '{0}' was not successful!\n".format(
+                    str(transition_id))
+            self.emit_event("error", msg)
 
         if self.controller and self.check_ready():
-            dir = self.project.get_directory()+"/data"
-            import os
-            if not os.path.exists(dir):
-                os.makedirs(dir)
-            command = "STORE_BINDING {0} {1} {2} {3}".format(transition_id, process_id, dir, "w")
+            command = "STORE_BINDING {0} {1} {2} {3}".format(transition.id,
+                                                             process_id,
+                                                             test_dir,
+                                                             "w")               # TODO: this information has to be get from dialog
             self.state = "runnning"
             self.controller.run_command_expect_ok(command,
-                                                  None,
-                                                  fail_callback,
+                                                  ok,
+                                                  fail,
                                                   self.set_state_ready)
 
     def fire_transition(self,
