@@ -504,7 +504,8 @@ class App:
             simulation.connect("localhost", port)
 
             #callback create_test, we must know the app->project in simulation
-            simulation.set_callback("create_test", lambda w: self.transition_test(w))
+            simulation.set_callback("create-transition-test",
+                                    lambda w: self.transition_test(w))
 
         simconfig = self.project.get_simconfig()
         if simconfig.parameters_values is None:

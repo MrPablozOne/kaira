@@ -234,7 +234,8 @@ def contextmenu_transition(config, item, position):
 
     return [
         ("Create test",
-            lambda w: simulation.emit_event("create_test", transition)),
+            lambda w: simulation.emit_event("create-transition-test",
+                                            transition)),
         ("Store binding",
             lambda w: simulation.store_binding(transition,
                                                get_process_id(transition)))
