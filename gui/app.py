@@ -572,7 +572,7 @@ class App:
         self.project.set_error_messages({})
 
     def new_simulation(self):
-        simulation = Simulation()
+        simulation = Simulation(self.project)
         simulation.set_callback("error", lambda line: self.console_write(line, "error"))
         simulation.set_callback("command-failed",
             lambda sequence, command:
@@ -781,8 +781,16 @@ class App:
         self.console_write("Net saved as '{0}'.\n".format(filename), "success")
 
     def create_transition_test(self, origin_transition):
+
+        if self.project is None:
+            self.console_write(
+                "There is no active project; therefore, the transition test "
+                "cannot be created.", "error")
+            return
+
         net = origin_transition.net
         new_net, idtable = net.copy_and_return_idtable()
+        backward_idtable = dict( (v, k) for k, v in idtable.iteritems() )
         # translate old transition id to then new one
         tr_id = idtable[origin_transition.id]
         tr = new_net.get_item(tr_id)
@@ -817,28 +825,35 @@ class App:
                 preserved_item_ids.extend([ place_id, edge.id ])
             place.set_init_string("")
 
-        # remove each element which is not both tested transition or
+        # remove each element which is not both a tested transition or
         # its input place
         for item in new_net.items[:]:
             if item.id not in preserved_item_ids:
                 new_net.delete_item(item)
 
-        print self.project.get_filename()
+        test_dir = os.path.join(self.project.get_directory(),
+                                "data",
+                                str(origin_transition.id))
+
         # set initialization of places
         for place_id in tr_in_place_ids:
             place = new_net.get_item(place_id)
 
             # set initialization
             place.set_init_string("")
-            # TODO: open code editor
-            place.set_code("// {0}\n".format(place_id))
+            place.set_code("\tca::load(\"{0}\", place);\n".format(
+                os.path.join(
+                    test_dir, "{0}.data".format(backward_idtable[place_id]))))
 
-        # store as a new project
-        project = self.project # TODO create a totally new project!!
         new_net.set_name("Test - {0}".format(
             utils.sanitize_name(origin_transition.get_name_or_id())))
-        project.add_net(new_net)
-        project.set_build_net(new_net)
+        self.project.add_net(new_net)
+        self.project.set_build_net(new_net)
+
+        self.console_write(
+                "The test for transition '{0}' has been successfully "
+                "generated.\n".format(origin_transition.get_name_or_id()),
+                "success")
 
 if __name__ == "__main__":
     args = sys.argv[1:] # Remove "app.py"

@@ -42,13 +42,16 @@ class Simulation(EventSource):
     quit_on_shutdown = False
     init_control_sequence = None
 
-    def __init__(self):
+    def __init__(self, active_project = None):
         EventSource.__init__(self)
         self.random = random.Random()
         self.state = "ready" # states: ready / running / finished / error
         self.runinstance = None
         self.sequence = controlseq.ControlSequence()
         self.history_instances = []
+
+        # a project (net) from which the simulation was triggered
+        self.active_project = active_project
 
     def connect(self, host, port):
         def inited():
@@ -242,7 +245,14 @@ class Simulation(EventSource):
                       ok_callback=None,
                       fail_callback=None):
 
-        test_dir = os.path.join(self.project.get_directory(), "data")
+        if self.active_project is None:
+            self.emit_event("error", "Binding cannot be stored because there "
+                    "there is not opened any active project\n")
+            return
+
+        test_dir = os.path.join(self.active_project.get_directory(),
+                                "data",
+                                str(transition.id))
         utils.makedir_if_not_exists(test_dir)
 
         def ok():
