@@ -242,6 +242,7 @@ class Simulation(EventSource):
     def store_binding(self,
                       transition,
                       process_id,
+                      rewrite=True,
                       ok_callback=None,
                       fail_callback=None):
 
@@ -269,14 +270,21 @@ class Simulation(EventSource):
             if fail_callback:
                 fail_callback()
             msg = "Binding of transition '{0}' was not successful!\n".format(
-                    str(transition_id))
+                    str(transition.id))
             self.emit_event("error", msg)
 
         if self.controller and self.check_ready():
-            command = "STORE_BINDING {0} {1} {2} {3}".format(transition.id,
-                                                             process_id,
-                                                             test_dir,
-                                                             "w")               # TODO: this information has to be get from dialog
+            command = "STORE_BINDING {0} {1} {2} {3}"
+            if(rewrite):
+                command = command.format(transition.id,
+                                        process_id,
+                                        test_dir,
+                                        "w")
+            else:
+                command = command.format(transition.id,
+                                        process_id,
+                                        test_dir,
+                                        "a")
             self.state = "runnning"
             self.controller.run_command_expect_ok(command,
                                                   ok,
