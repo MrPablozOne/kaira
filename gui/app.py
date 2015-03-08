@@ -785,12 +785,22 @@ class App:
         if self.project is None:
             self.console_write(
                 "There is no active project; therefore, the transition test "
-                "cannot be created.", "error")
+                "cannot be created.\n", "error")
             return
 
         net = origin_transition.net
         new_net, idtable = net.copy_and_return_idtable()
         backward_idtable = dict( (v, k) for k, v in idtable.iteritems() )
+
+        new_net.set_name("Test - {0}".format(
+            utils.sanitize_name(origin_transition.get_name_or_id())))
+        for net in self.project.get_nets():
+            if(net.get_name() == new_net.get_name()):
+                self.console_write(
+                    "The test net {0}, in this project, for this transition already exists.\n"
+                        .format(new_net.get_name())
+                    , "error")
+                return
         # translate old transition id to then new one
         tr_id = idtable[origin_transition.id]
         tr = new_net.get_item(tr_id)
