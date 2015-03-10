@@ -232,9 +232,15 @@ def contextmenu_transition(config, item, position):
     transition = item.owner
     simulation = config.simulation
 
+    if transition.net.get_name().startswith("Test"):
+        simulation.emit_event("error", "It's not possible to create test from test net.\n")
+        return None
     return [
         ("Create test",
             lambda w: simulation.emit_event("create-transition-test",
+                                            transition)),
+        ("Create test to new project",
+            lambda w: simulation.emit_event("create-transition-test-to-new-project", #create test and save to new project
                                             transition)),
         ("Store binding - add to actual",
             lambda w: simulation.store_binding(transition,

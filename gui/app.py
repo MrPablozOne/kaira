@@ -507,6 +507,8 @@ class App:
             #callback create_test, we must know the app->project in simulation
             simulation.set_callback("create-transition-test",
                                     lambda w: self.create_transition_test(w))
+            simulation.set_callback("create-transition-test-to-new-project",
+                                    lambda w: self.create_test_to_new_project(w))
 
         simconfig = self.project.get_simconfig()
         if simconfig.parameters_values is None:
@@ -780,7 +782,58 @@ class App:
         tab.widget.save_as_svg(filename)
         self.console_write("Net saved as '{0}'.\n".format(filename), "success")
 
-    def create_transition_test(self, origin_transition):
+    def create_test_to_new_project(self, origin_transition):
+        if self.project is None:
+            self.console_write(
+                "There is no active project; therefore, the transition test "
+                "cannot be created.\n", "error")
+            return
+
+        old_project = self.project
+        self.new_project()
+        new_project = self.project
+        if old_project is new_project:
+            return
+
+        return_string = utils.copy_data_test_file_to_new_project_if_exists(
+                old_project,new_project,origin_transition)
+        if return_string == "OK":
+            self.console_write("Stored data from old project on this test is copy to new project\n",
+                               "success")
+        else:
+            self.console_write(return_string, "error")
+
+        #delete net named by new project, then there are only test net
+        new_project.nets = []
+
+        #copy project configs & head code & parameters from old to new project
+        new_project.set_head_code(old_project.get_head_code())
+        params = old_project.get_parameters()
+        for param in params:
+            new_project.add_parameter(param)
+
+        build_option = old_project.build_options
+        for opt in build_option.keys():
+            new_project.set_build_option(opt, build_option[opt])
+
+        build_libraries = old_project.get_build_option("OTHER_FILES")
+        if build_libraries is not None:
+            build_libraries = build_libraries.split("\n")
+            for lib in build_libraries:
+                lib_name = lib.split(".")
+                exp_lib = "#include \""+lib_name[0]+".h\""
+                ret = old_project.get_head_code().find(exp_lib)
+                exp_lib = "#include <"+lib_name[0]+".h>"
+                ret2 = old_project.get_head_code().find(exp_lib)
+                if ret is not -1 or ret2 is not -1:
+                    lib_dir = os.path.join(old_project.get_directory(), "{0}.h".format(lib_name[0]))
+                    utils.copy_file_if_exists(lib_dir,new_project.get_directory())
+                    lib_dir = os.path.join(old_project.get_directory(), lib)
+                    utils.copy_file_if_exists(lib_dir,new_project.get_directory())
+
+        self.create_transition_test(origin_transition)
+
+    def create_transition_test(self, origin_transition, new_project = False):
 
         if self.project is None:
             self.console_write(
@@ -845,6 +898,10 @@ class App:
                                 "data",
                                 str(origin_transition.id))
 
+        input_places_ids = [backward_idtable[id] for id in tr_in_place_ids]
+        utils.make_transition_test_data_files_if_not_exists(
+                self.project.get_directory(), origin_transition.id, input_places_ids)
+
         # set initialization of places
         for place_id in tr_in_place_ids:
             place = new_net.get_item(place_id)
@@ -857,6 +914,8 @@ class App:
 
         new_net.set_name("Test - {0}".format(
             utils.sanitize_name(origin_transition.get_name_or_id())))
+        if new_project:
+            self.project.nets = []
         self.project.add_net(new_net)
         self.project.set_build_net(new_net)
 
@@ -864,6 +923,7 @@ class App:
                 "The test for transition '{0}' has been successfully "
                 "generated.\n".format(origin_transition.get_name_or_id()),
                 "success")
+
 
 if __name__ == "__main__":
     args = sys.argv[1:] # Remove "app.py"
