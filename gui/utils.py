@@ -294,6 +294,19 @@ def mkdir_if_needed_and_open(filename, mode="w"):
        os.makedirs(directory)
     return open(filename, mode)
 
+def make_binary_file_if_not_exists(filename):
+    if not os.path.exists(filename):
+        f = open(filename, 'wb').close()
+
+def make_transition_test_data_files_if_not_exists(project_dir, transition_id, input_places_ids):
+    project_dir = os.path.join(project_dir,
+                                "data",
+                                str(transition_id))
+    makedir_if_not_exists(project_dir)
+    for place_id in input_places_ids:
+        make_binary_file_if_not_exists(os.path.join(project_dir
+                                            ,"{0}.data".format(place_id)))
+
 # Collision with line (point, direction) = point, velocity
 # Circle (center, radius)
 # Returns triplet (cross_x, cross_y, t)

@@ -845,6 +845,9 @@ class App:
                                 "data",
                                 str(origin_transition.id))
 
+        input_places_ids = [backward_idtable[id] for id in tr_in_place_ids]
+        utils.make_transition_test_data_files_if_not_exists(self.project.get_directory(), origin_transition.id, input_places_ids)
+
         # set initialization of places
         for place_id in tr_in_place_ids:
             place = new_net.get_item(place_id)
