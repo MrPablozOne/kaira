@@ -296,7 +296,7 @@ def mkdir_if_needed_and_open(filename, mode="w"):
 
 def make_binary_file_if_not_exists(filename):
     if not os.path.exists(filename):
-        f = open(filename, 'wb').close()
+        f = open(filename, "wb").close()
 
 def make_transition_test_data_files_if_not_exists(project_dir, transition_id, input_places_ids):
     project_dir = os.path.join(project_dir,
