@@ -507,6 +507,8 @@ class App:
             #callback create_test, we must know the app->project in simulation
             simulation.set_callback("create-transition-test",
                                     lambda w: self.create_transition_test(w))
+            simulation.set_callback("create-transition-test-to-new-project",
+                                    lambda w: self.create_test_to_new_project(w))
 
         simconfig = self.project.get_simconfig()
         if simconfig.parameters_values is None:
@@ -780,7 +782,13 @@ class App:
         tab.widget.save_as_svg(filename)
         self.console_write("Net saved as '{0}'.\n".format(filename), "success")
 
-    def create_transition_test(self, origin_transition):
+    def create_test_to_new_project(self, origin_transition):
+        self.new_project()
+        self.create_transition_test(origin_transition)
+
+
+
+    def create_transition_test(self, origin_transition, new_project = False):
 
         if self.project is None:
             self.console_write(
@@ -860,6 +868,8 @@ class App:
 
         new_net.set_name("Test - {0}".format(
             utils.sanitize_name(origin_transition.get_name_or_id())))
+        if new_project:
+            self.project.nets = []
         self.project.add_net(new_net)
         self.project.set_build_net(new_net)
 
@@ -867,6 +877,7 @@ class App:
                 "The test for transition '{0}' has been successfully "
                 "generated.\n".format(origin_transition.get_name_or_id()),
                 "success")
+
 
 if __name__ == "__main__":
     args = sys.argv[1:] # Remove "app.py"
