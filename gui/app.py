@@ -783,7 +783,26 @@ class App:
         self.console_write("Net saved as '{0}'.\n".format(filename), "success")
 
     def create_test_to_new_project(self, origin_transition):
+        if self.project is None:
+            self.console_write(
+                "There is no active project; therefore, the transition test "
+                "cannot be created.\n", "error")
+            return
+
+        old_project = self.project
         self.new_project()
+        new_project = self.project
+        if old_project is new_project:
+            return
+
+        return_string = utils.copy_data_test_file_to_new_project_if_exists(old_project,new_project,origin_transition)
+        if return_string == "OK":
+            self.console_write("Stored data from old project on this test is copy to new project\n",
+                               "success")
+        else:
+            self.console_write(return_string, "error")
+        #delete net named by new project, then there are only test net
+        new_project.nets = []
         self.create_transition_test(origin_transition)
 
 

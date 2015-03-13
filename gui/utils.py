@@ -23,6 +23,7 @@ import os
 import re
 import time
 import numpy as np
+import shutil
 
 id_counter = 1000
 def get_unique_id():
@@ -306,6 +307,19 @@ def make_transition_test_data_files_if_not_exists(project_dir, transition_id, in
     for place_id in input_places_ids:
         make_binary_file_if_not_exists(os.path.join(project_dir
                                             ,"{0}.data".format(place_id)))
+
+def copy_data_test_file_to_new_project_if_exists(old_project, new_project, transition):
+    old_project_directory = os.path.join(old_project.get_directory(),
+                                "data",
+                                str(transition.id))
+    new_project_directory = os.path.join(new_project.get_directory(),
+                                "data",
+                                str(transition.id))
+    try:
+        shutil.copytree(old_project_directory,new_project_directory)
+        return "OK"
+    except OSError as e:
+        return "ERROR with copy data test files to new project: {0}\n".format(e)
 
 # Collision with line (point, direction) = point, velocity
 # Circle (center, radius)
