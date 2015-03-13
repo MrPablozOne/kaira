@@ -798,7 +798,7 @@ class App:
         return_string = utils.copy_data_test_file_to_new_project_if_exists(old_project,new_project,origin_transition)
         if return_string == "OK":
             self.console_write("Stored data from old project on this test is copy to new project\n",
-                               "success")
+                                "success")
         else:
             self.console_write(return_string, "error")
         #delete net named by new project, then there are only test net

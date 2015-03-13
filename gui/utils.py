@@ -315,6 +315,8 @@ def copy_data_test_file_to_new_project_if_exists(old_project, new_project, trans
     new_project_directory = os.path.join(new_project.get_directory(),
                                 "data",
                                 str(transition.id))
+    if not os.path.exists(old_project_directory):
+        return "you don't stored any data for this transition\n"
     try:
         shutil.copytree(old_project_directory,new_project_directory)
         return "OK"
