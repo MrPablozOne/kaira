@@ -308,6 +308,15 @@ def make_transition_test_data_files_if_not_exists(project_dir, transition_id, in
         make_binary_file_if_not_exists(os.path.join(project_dir
                                             ,"{0}.data".format(place_id)))
 
+def copy_file_if_exists(source, destination):
+    if os.path.exists(source):
+        try:
+            shutil.copy(source, destination)
+            return "OK\n"
+        except OSError as e:
+            return "ERROR with copy file {0}: {1}\n".format(source,e)
+    return "Source file not exist.\n"
+
 def copy_data_test_file_to_new_project_if_exists(old_project, new_project, transition):
     old_project_directory = os.path.join(old_project.get_directory(),
                                 "data",

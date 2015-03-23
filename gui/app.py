@@ -801,9 +801,37 @@ class App:
                                 "success")
         else:
             self.console_write(return_string, "error")
+
         #delete net named by new project, then there are only test net
         new_project.nets = []
+
+        #copy project configs & head code & parameters from old to new project
+        new_project.set_head_code(old_project.get_head_code())
+        params = old_project.get_parameters()
+        for param in params:
+            new_project.add_parameter(param)
+
+        build_option = old_project.build_options
+        for opt in build_option.keys():
+            new_project.set_build_option(opt, build_option[opt])
+
+        build_libraries = old_project.get_build_option("OTHER_FILES")
+        if build_libraries is not None:
+            build_libraries = build_libraries.split("\n")
+            for lib in build_libraries:
+                lib_name = lib.split(".")
+                exp_lib = "#include \""+lib_name[0]+".h\""
+                ret = old_project.get_head_code().find(exp_lib)
+                exp_lib = "#include <"+lib_name[0]+".h>"
+                ret2 = old_project.get_head_code().find(exp_lib)
+                if ret is not -1 or ret2 is not -1:
+                    lib_dir = os.path.join(old_project.get_directory(), "{0}.h".format(lib_name[0]))
+                    utils.copy_file_if_exists(lib_dir,new_project.get_directory())
+                    lib_dir = os.path.join(old_project.get_directory(), lib)
+                    utils.copy_file_if_exists(lib_dir,new_project.get_directory())
+
         self.create_transition_test(origin_transition)
+
 
 
 
