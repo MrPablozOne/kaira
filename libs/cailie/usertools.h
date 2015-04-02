@@ -8,6 +8,7 @@
 #include "place.h"
 
 #include <vector>
+#include <string>
 
 namespace ca {
 
@@ -84,6 +85,66 @@ class Context {
         } while (all); // bulk edge
 
         fclose(f);
+    }
+
+    void assertEquals(const std::string &message, const int expected, const int actual) {
+        std::stringstream msg;
+        if(expected != actual) {
+            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+        else {
+            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+    }
+
+    void assertEquals(const std::string &message, const char expected, const char actual) {
+        std::stringstream msg;
+        if(expected != actual) {
+            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+        else {
+            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+    }
+
+    void assertEquals(const std::string &message, const float expected, const float actual) {
+        std::stringstream msg;
+        if(expected != actual) {
+            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+        else {
+            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+    }
+
+    void assertEquals(const std::string &message, const double expected, const double actual) {
+        std::stringstream msg;
+        if(expected != actual) {
+            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+        else {
+            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+    }
+
+    void assertEquals(const std::string &message, const std::string &expected, const std::string &actual) {
+        std::stringstream msg;
+        if(expected.compare(actual) != 0) {//not equal
+            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
+        else {//equal
+            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
+            perror(msg.str().c_str());
+        }
     }
 
     template<typename T>

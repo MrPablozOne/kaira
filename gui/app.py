@@ -805,6 +805,8 @@ class App:
         #delete net named by new project, then there are only test net
         new_project.nets = []
 
+        #function copy_project_setting
+
         #copy project configs & head code & parameters from old to new project
         new_project.set_head_code(old_project.get_head_code())
         params = old_project.get_parameters()
@@ -831,9 +833,6 @@ class App:
                     utils.copy_file_if_exists(lib_dir,new_project.get_directory())
 
         self.create_transition_test(origin_transition)
-
-
-
 
     def create_transition_test(self, origin_transition, new_project = False):
 
