@@ -8,8 +8,30 @@
 #include "place.h"
 
 #include <vector>
+#include <string>
+#include <exception>
+#include <stdexcept>
+
 
 namespace ca {
+
+//My own assert exception
+class AssertException: public std::runtime_error{
+    private:
+        const char* assertMessage;
+        //Rovnalo nebo nerovnalo se to?
+        bool isOk;
+    public:
+        AssertException(const char* msg, bool ok) : std::runtime_error(""){
+            assertMessage = msg;
+            isOk = ok;
+        }
+        ~AssertException() throw() {}
+        virtual const char * what () const throw ()
+        {
+            return assertMessage;
+        }
+};
 
 class Context {
 	public:
@@ -84,6 +106,37 @@ class Context {
         } while (all); // bulk edge
 
         fclose(f);
+    }
+//vyhodit vyjimku vlastni
+    template<typename T>
+    void assertEquals(const std::string &message, const T expected, const T actual) {
+        std::stringstream msg;
+        if(expected != actual) {
+            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";";
+            throw AssertException(msg.str().c_str(), false);//vyjimka!
+        }
+        else {
+            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";";
+             throw AssertException(msg.str().c_str(), true);//vyjimka!
+        }
+    }
+
+    //Vyhodí pouze výjimku
+    void assertFail(const std::string &message) {
+        throw AssertException(message.c_str(), false);
+    }
+
+    //Podle porovnavaci funkce
+    template<typename T>
+    void assert(const std::string &message, bool (* func)(T, T), T obj1, T obj2) {
+        std::stringstream msg;
+        if((* func)(obj1, obj2)) {
+            msg << "ErrorCode: 0x000;" << message << ";" << obj1 << ";" << obj2 << ";";
+            throw AssertException(msg.str().c_str(), true);
+        } else {
+            msg << "ErrorCode: 0x000;" << message << ";" << obj1 << ";" << obj2 << ";";
+            throw AssertException(msg.str().c_str(), false);
+        }
     }
 
     template<typename T>
