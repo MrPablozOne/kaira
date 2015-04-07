@@ -9,8 +9,29 @@
 
 #include <vector>
 #include <string>
+#include <exception>
+#include <stdexcept>
+
 
 namespace ca {
+
+//My own assert exception
+class AssertException: public std::runtime_error{
+    private:
+        const char* assertMessage;
+        //Rovnalo nebo nerovnalo se to?
+        bool isOk;
+    public:
+        AssertException(const char* msg, bool ok) : std::runtime_error(""){
+            assertMessage = msg;
+            isOk = ok;
+        }
+        ~AssertException() throw() {}
+        virtual const char * what () const throw ()
+        {
+            return assertMessage;
+        }
+};
 
 class Context {
 	public:
@@ -86,64 +107,35 @@ class Context {
 
         fclose(f);
     }
-
-    void assertEquals(const std::string &message, const int expected, const int actual) {
+//vyhodit vyjimku vlastni
+    template<typename T>
+    void assertEquals(const std::string &message, const T expected, const T actual) {
         std::stringstream msg;
         if(expected != actual) {
-            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
+            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";";
+            throw AssertException(msg.str().c_str(), false);//vyjimka!
         }
         else {
-            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
+            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";";
+             throw AssertException(msg.str().c_str(), true);//vyjimka!
         }
     }
 
-    void assertEquals(const std::string &message, const char expected, const char actual) {
-        std::stringstream msg;
-        if(expected != actual) {
-            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
-        }
-        else {
-            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
-        }
+    //Vyhodí pouze výjimku
+    void assertFail(const std::string &message) {
+        throw AssertException(message.c_str(), false);
     }
 
-    void assertEquals(const std::string &message, const float expected, const float actual) {
+    //Podle porovnavaci funkce
+    template<typename T>
+    void assert(const std::string &message, bool (* func)(T, T), T obj1, T obj2) {
         std::stringstream msg;
-        if(expected != actual) {
-            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
-        }
-        else {
-            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
-        }
-    }
-
-    void assertEquals(const std::string &message, const double expected, const double actual) {
-        std::stringstream msg;
-        if(expected != actual) {
-            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
-        }
-        else {
-            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
-        }
-    }
-
-    void assertEquals(const std::string &message, const std::string &expected, const std::string &actual) {
-        std::stringstream msg;
-        if(expected.compare(actual) != 0) {//not equal
-            msg << "ErrorCode: 0x000;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
-        }
-        else {//equal
-            msg << "ErrorCode: 0x001;" << message << ";" << expected << ";" << actual << ";\n";
-            perror(msg.str().c_str());
+        if((* func)(obj1, obj2)) {
+            msg << "ErrorCode: 0x000;" << message << ";" << obj1 << ";" << obj2 << ";";
+            throw AssertException(msg.str().c_str(), true);
+        } else {
+            msg << "ErrorCode: 0x000;" << message << ";" << obj1 << ";" << obj2 << ";";
+            throw AssertException(msg.str().c_str(), false);
         }
     }
 
