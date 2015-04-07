@@ -295,9 +295,9 @@ def mkdir_if_needed_and_open(filename, mode="w"):
        os.makedirs(directory)
     return open(filename, mode)
 
-def make_binary_file_if_not_exists(filename):
+def make_file_if_not_exist(filename, open_type='w'):
     if not os.path.exists(filename):
-        f = open(filename, "wb").close()
+        open(filename, open_type).close()
 
 def make_transition_test_data_files_if_not_exists(project_dir, transition_id, input_places_ids):
     project_dir = os.path.join(project_dir,
@@ -305,8 +305,8 @@ def make_transition_test_data_files_if_not_exists(project_dir, transition_id, in
                                 str(transition_id))
     makedir_if_not_exists(project_dir)
     for place_id in input_places_ids:
-        make_binary_file_if_not_exists(os.path.join(project_dir
-                                            ,"{0}.data".format(place_id)))
+        make_file_if_not_exist(os.path.join(project_dir
+                                            ,"{0}.data".format(place_id)), "wb")
 
 def copy_file_if_exists(source, destination):
     if os.path.exists(source):
