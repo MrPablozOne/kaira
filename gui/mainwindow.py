@@ -281,16 +281,7 @@ class Console(gtk.ScrolledWindow):
         self.textview.scroll_to_mark(mark, 0)
 
     def write(self, text, tag_name="normal"):
-        if text.startswith("OUTPUT: ErrorCode: 0x000"):
-            tmp = text.split(";")
-            msg = "Msg: {0}. Actual {1} is not equal to expected {2} \n".format(tmp[1],tmp[3], tmp[2])
-            self.textview.write(msg, "error")
-        elif text.startswith("OUTPUT: ErrorCode: 0x001"):
-            tmp = text.split(";")
-            msg = "Actual {0} equal to expected {1}\n".format(tmp[3], tmp[2])
-            self.textview.write(msg, "success")
-        else:
-            self.textview.write(text, tag_name)
+        self.textview.write(text, tag_name)
         self.scroll_to_end()
 
     def write_link(self, text, callback):
