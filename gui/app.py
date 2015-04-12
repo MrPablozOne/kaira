@@ -459,7 +459,10 @@ class App:
 
     def run_simulated_program(self, name, directory, simconfig, valgrind):
         def output(line, stream):
-            self.console_write_output(line)
+            if line.startswith("ASSERT"):
+                self.console_write(line, "assert");
+            else:
+                self.console_write_output(line)
             return True
 
         if valgrind:

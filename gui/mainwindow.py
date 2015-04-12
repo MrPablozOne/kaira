@@ -268,6 +268,7 @@ class Console(gtk.ScrolledWindow):
         self.textview.create_tag("error", foreground="red")
         self.textview.create_tag("warn", foreground="chocolate")
         self.textview.create_tag("info", foreground="dark blue")
+        self.textview.create_tag("assert", foreground="orange")
         self.add(self.textview)
 
     def scroll_to_end(self):
