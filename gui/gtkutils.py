@@ -30,6 +30,10 @@ def build_menu(description, use_underline=True):
         if name == "-":
             menu.append(gtk.SeparatorMenuItem())
             continue
+        if isinstance(name, tuple):
+            name, state = name
+        else:
+            state = True
         if isinstance(action, tuple):
             check, action = action
             item = gtk.CheckMenuItem(name)
@@ -40,6 +44,7 @@ def build_menu(description, use_underline=True):
             item.set_submenu(build_menu(action, use_underline))
         else:
             item.connect("activate", action)
+        item.set_sensitive(state)
         menu.append(item)
     return menu
 

@@ -157,7 +157,7 @@ class App:
         self.window.switch_to_tab_by_key("nets")
         self.neteditor.switch_to_net(net)
 
-    def new_project(self):
+    def new_project(self, set_project = True):
         def project_name_changed(w = None):
             name = builder.get_object("newproject-name").get_text()
             ok = all(c.isalnum() or c == "-" or c == "_" for c in name) and name != ""
@@ -187,7 +187,9 @@ class App:
                 target_env_name = builder.get_object("newproject-target-env").get_active_text()
                 p = self._catch_io_error(lambda: loader.new_empty_project(dirname, target_env_name))
                 if p is not None:
-                    self.set_project(p)
+                    if set_project is True:
+                        self.set_project(p)
+                    return p
         finally:
             dlg.hide()
 
@@ -793,13 +795,12 @@ class App:
             return
 
         old_project = self.project
-        self.new_project()
-        new_project = self.project
+        new_project = self.new_project(False)
         if old_project is new_project:
             return
 
         return_string = utils.copy_data_test_file_to_new_project_if_exists(
-                old_project,new_project,origin_transition)
+                old_project, new_project, origin_transition)
         if return_string == "OK":
             self.console_write("Stored data from old project on this test is copy to new project\n",
                                "success")
@@ -834,9 +835,13 @@ class App:
                     lib_dir = os.path.join(old_project.get_directory(), lib)
                     utils.copy_file_if_exists(lib_dir,new_project.get_directory())
 
-        self.create_transition_test(origin_transition)
+        self.create_transition_test(origin_transition, new_project)
 
-    def create_transition_test(self, origin_transition, new_project = False):
+
+    def create_transition_test(self, origin_transition, test_project=None):
+        work_project = self.project
+        if test_project is not None:
+            work_project = test_project
 
         if self.project is None:
             self.console_write(
@@ -850,8 +855,8 @@ class App:
 
         new_net.set_name("Test - {0}".format(
             utils.sanitize_name(origin_transition.get_name_or_id())))
-        for net in self.project.get_nets():
-            if(net.get_name() == new_net.get_name()):
+        for net in work_project.get_nets():
+            if net.get_name() is new_net.get_name():
                 self.console_write(
                     "The test net {0}, in this project, for this transition already exists.\n"
                         .format(new_net.get_name())
@@ -897,13 +902,11 @@ class App:
             if item.id not in preserved_item_ids:
                 new_net.delete_item(item)
 
-        test_dir = os.path.join(self.project.get_directory(),
-                                "data",
-                                str(origin_transition.id))
+        test_dir_relative = "./data/{0}".format(str(origin_transition.id))
 
         input_places_ids = [backward_idtable[id] for id in tr_in_place_ids]
         utils.make_transition_test_data_files_if_not_exists(
-                self.project.get_directory(), origin_transition.id, input_places_ids)
+                work_project.get_directory(), origin_transition.id, input_places_ids)
 
         # set initialization of places
         for place_id in tr_in_place_ids:
@@ -913,14 +916,13 @@ class App:
             place.set_init_string("")
             place.set_code("\tca::load(\"{0}\", place);\n".format(
                 os.path.join(
-                    test_dir, "{0}.data".format(backward_idtable[place_id]))))
+                    test_dir_relative, "{0}.data".format(backward_idtable[place_id]))))
 
         new_net.set_name("Test - {0}".format(
             utils.sanitize_name(origin_transition.get_name_or_id())))
-        if new_project:
-            self.project.nets = []
-        self.project.add_net(new_net)
-        self.project.set_build_net(new_net)
+
+        work_project.add_net(new_net)
+        work_project.set_build_net(new_net)
 
         self.console_write(
                 "The test for transition '{0}' has been successfully "

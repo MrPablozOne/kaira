@@ -47,6 +47,50 @@ class Context {
 			}
 		}
 
+        template<typename T>
+        void assertEquals(bool (* equal) (const T&, const T&),
+                          const T &actual_value,
+                          const T &expected_value,
+                          const std::string &message="") {
+
+            std::stringstream result_msg;
+            result_msg << "ASSERT EQUALS: ";
+            if (message != "") {
+                result_msg << message << " - ";
+            }
+
+            if (equal(actual_value, expected_value)) {
+                //result_msg << "[Ok]";
+                //fprintf(stderr, "%s\n", result_msg.str().c_str());
+                //Nothing to write, beacuse i want know only thing, if the test failed
+            } else {
+                result_msg << "[Fail] Process: " << process_id()
+                           << " (Expected: " << expected_value
+                           << ", Actual: " << actual_value << ")";
+                fprintf(stderr, "%s\n", result_msg.str().c_str());
+
+                // if an assert fail then the program will be stopped
+                quit();
+            }
+        }
+
+        template<typename T>
+        void assertEquals(const T &actual_value,
+                          const T &expected_value,
+                          const std::string &message="") {
+
+            struct comparator {
+                static bool equal (const T &o1, const T &o2) {
+                   return o1 == o2;
+                }
+            };
+
+            assertEquals(comparator::equal,
+                         actual_value,
+                         expected_value,
+                         message);
+        }
+
 
 	protected:
 		ThreadBase *thread;
@@ -131,52 +175,6 @@ class Context {
        }
        fclose(f);
    }
-
-    template<typename T>
-    void assertEquals(Context &ctx,
-                      bool (* equal) (const T&, const T&),
-                      const T &actual_value,
-                      const T &expected_value,
-                      const std::string &message="") {
-
-        std::stringstream result_msg;
-        result_msg << "ASSERT EQUALS: ";
-        if (message != "") {
-            result_msg << message << " - ";
-        }
-
-        if (equal(actual_value, expected_value)) {
-            result_msg << "[Ok]";
-            fprintf(stderr, "%s\n", result_msg.str().c_str());
-        } else {
-            result_msg << "[Fail]"
-                       << " (Expected: " << expected_value
-                       << ", Actual: " << actual_value << ")";
-            fprintf(stderr, "%s\n", result_msg.str().c_str());
-
-            // if an assert fail then the program will be stopped
-            ctx.quit();
-        }
-    }
-
-    template<typename T>
-    void assertEquals(Context &ctx,
-                      const T &actual_value,
-                      const T &expected_value,
-                      const std::string &message="") {
-
-        struct comparator {
-            static bool equal (const T &o1, const T &o2) {
-               return o1 == o2;
-            }
-        };
-
-        assertEquals(ctx,
-                     comparator::equal,
-                     actual_value,
-                     expected_value,
-                     message);
-    }
 
 }
 
