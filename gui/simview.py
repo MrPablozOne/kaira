@@ -235,17 +235,32 @@ def contextmenu_transition(config, item, position):
     if transition.net.get_name().startswith("Test"):
         simulation.emit_event("error", "It's not possible to create test from test net.\n")
         return None
+
+    menu1_name = "Create test"
+    menu2_name = "Create test to new project"
+    menu3_name = "Store binding - add to actual"
+    menu4_name = "Store binding - rewrite to actual"
+
+    if transition.is_collective(): #Disable menuitems
+        menu1_name = (menu1_name, False)
+        menu2_name = (menu2_name, False)
+        menu3_name = (menu3_name, False)
+        menu4_name = (menu4_name, False)
+    elif get_process_id(transition) is None:
+        menu3_name = (menu3_name, False)
+        menu4_name = (menu4_name, False)
+
     return [
-        ("Create test",
+        (menu1_name,
             lambda w: simulation.emit_event("create-transition-test",
                                             transition)),
-        ("Create test to new project",
+        (menu2_name,
             lambda w: simulation.emit_event("create-transition-test-to-new-project", #create test and save to new project
                                             transition)),
-        ("Store binding - add to actual",
+        (menu3_name,
             lambda w: simulation.store_binding(transition,
                                                get_process_id(transition),False)),
-        ("Store binding - rewrite actual",
+        (menu4_name,
             lambda w: simulation.store_binding(transition,
                                                get_process_id(transition)))
     ]
