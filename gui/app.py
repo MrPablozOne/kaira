@@ -158,7 +158,7 @@ class App:
         self.window.switch_to_tab_by_key("nets")
         self.neteditor.switch_to_net(net)
 
-    def new_project(self, set_project = True):
+    def new_project(self, set_project = True, save_last_project = False):
         def project_name_changed(w = None):
             name = builder.get_object("newproject-name").get_text()
             ok = all(c.isalnum() or c == "-" or c == "_" for c in name) and name != ""
@@ -188,6 +188,8 @@ class App:
                 target_env_name = builder.get_object("newproject-target-env").get_active_text()
                 p = self._catch_io_error(lambda: loader.new_empty_project(dirname, target_env_name))
                 if p is not None:
+                    if save_last_project is True:
+                        self._save_project(True)
                     if set_project is True:
                         self.set_project(p)
                     return p
@@ -799,7 +801,7 @@ class App:
             return
 
         old_project = self.project
-        new_project = self.new_project(True)
+        new_project = self.new_project(True, True)
 
 
 
@@ -842,10 +844,10 @@ class App:
                     lib_dir = os.path.join(old_project.get_directory(), lib)
                     utils.copy_file_if_exists(lib_dir,new_project.get_directory())
 
-        self.create_transition_test(origin_transition, new_project)
+        self.create_transition_test(origin_transition, new_project, old_project)
 
 
-    def create_transition_test(self, origin_transition, test_project=None):
+    def create_transition_test(self, origin_transition, test_project=None, old_project=None):
         work_project = self.project
         if test_project is not None:
             work_project = test_project
@@ -925,15 +927,13 @@ class App:
                 os.path.join(
                     test_dir_relative, "{0}.data".format(backward_idtable[place_id]))))
 
-        new_net.set_name("Test - {0}".format(
-            utils.sanitize_name(origin_transition.get_name_or_id())))
-        test = Test(self.project, id)
+        test = Test(old_project, id)
         test.set_net_name(new_net.get_name())
         test.set_project_dir(work_project.get_directory())
         test.set_project_file(work_project.get_filename())
         test.set_transition_id(origin_transition.get_id())
-
-        self.project.add_test(test)
+        old_project.add_test(test)
+        old_project.save()
         work_project.add_net(new_net)
         work_project.set_build_net(new_net)
 
