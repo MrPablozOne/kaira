@@ -34,6 +34,7 @@ from simconfig import SimConfigDialog
 from projectconfig import ProjectConfig
 from simulation import Simulation
 from net import Place, Edge
+from test import Test
 import simview
 import codeedit
 import process
@@ -514,6 +515,9 @@ class App:
                                     lambda w: self.create_transition_test(w))
             simulation.set_callback("create-transition-test-to-new-project",
                                     lambda w: self.create_test_to_new_project(w))
+            simulation.set_callback("save_binding_to_tests",
+                                    lambda w: self.save_binding_for_tests(w))
+
 
         simconfig = self.project.get_simconfig()
         if simconfig.parameters_values is None:
@@ -796,11 +800,14 @@ class App:
 
         old_project = self.project
         new_project = self.new_project(False)
+
+
+
         if old_project is new_project:
             return
 
         return_string = utils.copy_data_test_file_to_new_project_if_exists(
-                old_project, new_project, origin_transition)
+                old_project.get_directory(), new_project.get_directory(), origin_transition)
         if return_string == "OK":
             self.console_write("Stored data from old project on this test is copy to new project\n",
                                "success")
@@ -920,7 +927,13 @@ class App:
 
         new_net.set_name("Test - {0}".format(
             utils.sanitize_name(origin_transition.get_name_or_id())))
+        test = Test(self.project, id)
+        test.set_net_name(new_net.get_name())
+        test.set_project_dir(work_project.get_directory())
+        test.set_project_file(work_project.get_filename())
+        test.set_transition_id(origin_transition.get_id())
 
+        self.project.add_test(test)
         work_project.add_net(new_net)
         work_project.set_build_net(new_net)
 
@@ -928,6 +941,19 @@ class App:
                 "The test for transition '{0}' has been successfully "
                 "generated.\n".format(origin_transition.get_name_or_id()),
                 "success")
+
+    def save_binding_for_tests(self, transition_id):
+        print transition_id
+        tests = self.project.get_all_tests()
+        for test in tests[:]:
+            if test.get_project_file() is self.project.get_filename():
+                continue
+            if not os.path.isdir(test.get_project_dir()): #if dir not exist, delete the test from project
+                self.project.delete_test(test)
+                continue
+            ret_str = utils.copy_data_test_file_to_new_project_if_exists(self.project.get_directory(), test.get_project_dir(), transition_id)
+            if ret_str is not "OK":
+                print "fail test {0}".format(test.get_id())
 
 
 if __name__ == "__main__":

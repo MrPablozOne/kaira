@@ -23,7 +23,7 @@ import os
 import re
 import time
 import numpy as np
-import shutil
+import shutil, errno
 
 id_counter = 1000
 def get_unique_id():
@@ -317,20 +317,36 @@ def copy_file_if_exists(source, destination):
             return "ERROR with copy file {0}: {1}\n".format(source,e)
     return "Source file not exist.\n"
 
-def copy_data_test_file_to_new_project_if_exists(old_project, new_project, transition):
-    old_project_directory = os.path.join(old_project.get_directory(),
+def copy_data_test_file_to_new_project_if_exists(old_project_dir, new_project_dir, transition):
+    if isinstance(transition, int):
+        old_project_directory = os.path.join(old_project_dir,
+                                "data",
+                                str(transition))
+        new_project_directory = os.path.join(new_project_dir,
+                                "data",
+                                str(transition))
+    else:
+        old_project_directory = os.path.join(old_project_dir,
                                 "data",
                                 str(transition.id))
-    new_project_directory = os.path.join(new_project.get_directory(),
+        new_project_directory = os.path.join(new_project_dir,
                                 "data",
                                 str(transition.id))
     if not os.path.exists(old_project_directory):
         return "you don't stored any data for this transition\n"
     try:
+
         shutil.copytree(old_project_directory,new_project_directory)
         return "OK"
     except OSError as e:
-        return "ERROR with copy data test files to new project: {0}\n".format(e)
+        # File already exist
+        if e.errno == errno.EEXIST:
+            import distutils.dir_util
+            distutils.dir_util.copy_tree(old_project_directory, new_project_directory)
+            #shutil.copy(old_project_directory, new_project_directory)
+            return "OK"
+        else:
+            return "ERROR with copy data test files to new project: {0}\n".format(e)
 
 # Collision with line (point, direction) = point, velocity
 # Circle (center, radius)
