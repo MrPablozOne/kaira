@@ -34,6 +34,7 @@ from simconfig import SimConfigDialog
 from projectconfig import ProjectConfig
 from simulation import Simulation
 from net import Place, Edge
+from test import Test
 import simview
 import codeedit
 import process
@@ -157,7 +158,7 @@ class App:
         self.window.switch_to_tab_by_key("nets")
         self.neteditor.switch_to_net(net)
 
-    def new_project(self, set_project = True):
+    def new_project(self, set_project = True, save_last_project = False):
         def project_name_changed(w = None):
             name = builder.get_object("newproject-name").get_text()
             ok = all(c.isalnum() or c == "-" or c == "_" for c in name) and name != ""
@@ -187,6 +188,8 @@ class App:
                 target_env_name = builder.get_object("newproject-target-env").get_active_text()
                 p = self._catch_io_error(lambda: loader.new_empty_project(dirname, target_env_name))
                 if p is not None:
+                    if save_last_project is True:
+                        self._save_project(True)
                     if set_project is True:
                         self.set_project(p)
                     return p
@@ -514,6 +517,9 @@ class App:
                                     lambda w: self.create_transition_test(w))
             simulation.set_callback("create-transition-test-to-new-project",
                                     lambda w: self.create_test_to_new_project(w))
+            simulation.set_callback("save_binding_to_tests",
+                                    lambda w: self.save_binding_for_tests(w))
+
 
         simconfig = self.project.get_simconfig()
         if simconfig.parameters_values is None:
@@ -795,12 +801,15 @@ class App:
             return
 
         old_project = self.project
-        new_project = self.new_project(False)
+        new_project = self.new_project(True, True)
+
+
+
         if old_project is new_project:
             return
 
         return_string = utils.copy_data_test_file_to_new_project_if_exists(
-                old_project, new_project, origin_transition)
+                old_project.get_directory(), new_project.get_directory(), origin_transition)
         if return_string == "OK":
             self.console_write("Stored data from old project on this test is copy to new project\n",
                                "success")
@@ -835,13 +844,15 @@ class App:
                     lib_dir = os.path.join(old_project.get_directory(), lib)
                     utils.copy_file_if_exists(lib_dir,new_project.get_directory())
 
-        self.create_transition_test(origin_transition, new_project)
+        self.create_transition_test(origin_transition, new_project, old_project)
 
 
-    def create_transition_test(self, origin_transition, test_project=None):
+    def create_transition_test(self, origin_transition, test_project=None, old_project=None):
         work_project = self.project
         if test_project is not None:
             work_project = test_project
+        if old_project is None:
+            old_project = self.project
 
         if self.project is None:
             self.console_write(
@@ -858,7 +869,7 @@ class App:
         for net in work_project.get_nets():
             if net.get_name() is new_net.get_name():
                 self.console_write(
-                    "The test net {0}, in this project, for this transition already exists.\n"
+                    "The test net '{0}', in this project, for this transition already exists.\n"
                         .format(new_net.get_name())
                     , "error")
                 return
@@ -918,16 +929,33 @@ class App:
                 os.path.join(
                     test_dir_relative, "{0}.data".format(backward_idtable[place_id]))))
 
-        new_net.set_name("Test - {0}".format(
-            utils.sanitize_name(origin_transition.get_name_or_id())))
 
+        test = Test(old_project, id)
+        test.set_net_name(new_net.get_name())
+        test.set_project_dir(work_project.get_directory())
+        test.set_project_file(work_project.get_filename())
+        test.set_transition_id(origin_transition.get_id())
+        old_project.add_test(test)
+        old_project.save()
         work_project.add_net(new_net)
-        work_project.set_build_net(new_net)
 
         self.console_write(
                 "The test for transition '{0}' has been successfully "
                 "generated.\n".format(origin_transition.get_name_or_id()),
                 "success")
+
+    def save_binding_for_tests(self, transition_id):
+        tests = self.project.get_all_tests()
+        for test in tests[:]:
+            if test.get_project_file() is self.project.get_filename():
+                continue
+            if not os.path.isdir(test.get_project_dir()): #if dir not exist, delete the test from project
+                self.project.delete_test(test)
+                continue
+            ret_str = utils.copy_data_test_file_to_new_project_if_exists(self.project.get_directory(), test.get_project_dir(), transition_id)
+            if ret_str is not "OK":
+                self.console_write("The test data has not been updated to test project {0}"
+                                   .format(test.get_project_dir()), "error")
 
 
 if __name__ == "__main__":

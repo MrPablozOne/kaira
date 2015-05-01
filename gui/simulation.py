@@ -265,6 +265,7 @@ class Simulation(EventSource):
                           utils.sanitize_name(transition.get_name_or_id()),
                           test_dir)
             self.emit_event("success-message", msg)
+            self.emit_event("save_binding_to_tests", transition.get_id())
 
         def fail():
             if fail_callback:

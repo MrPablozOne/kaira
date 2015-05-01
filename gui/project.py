@@ -22,6 +22,7 @@ import xml.etree.ElementTree as xml
 import os
 import ptp
 import utils
+import test
 
 from events import EventSource
 from simconfig import SimConfig
@@ -45,6 +46,7 @@ class Project(EventSource):
         self.nets = []
         self.parameters = []
         self.sequences = []
+        self.tests = []
         self.simconfig = SimConfig()
         self.error_messages = {}
         self.generator = None # PTP generator
@@ -59,6 +61,15 @@ class Project(EventSource):
             return self.build_options[name]
         else:
             return ""
+
+    def add_test(self, test):
+        self.tests.append(test)
+
+    def delete_test(self, test):
+        self.tests.remove(test)
+
+    def get_all_tests(self):
+        return self.tests
 
     def get_generator(self):
         """ Can raise PtpException """
@@ -217,6 +228,8 @@ class Project(EventSource):
         root.append(self._configuration_element(None))
         for net in self.nets:
             root.append(net.as_xml())
+        for test in self.tests:
+            root.append(test.as_xml())
         for sequence in self.sequences:
             root.append(sequence.as_xml())
         return root
