@@ -799,7 +799,7 @@ class App:
             return
 
         old_project = self.project
-        new_project = self.new_project(False)
+        new_project = self.new_project(True)
 
 
 
