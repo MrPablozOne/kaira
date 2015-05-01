@@ -233,7 +233,8 @@ def contextmenu_transition(config, item, position):
     simulation = config.simulation
 
     if transition.net.get_name().startswith("Test"):
-        simulation.emit_event("error", "It's not possible to create test from test net.\n")
+        simulation.emit_event("error", "It's not possible to create test from test net '{0}'.\n"
+                              .format(transition.net.get_name()))
         return None
 
     menu1_name = "Create test"

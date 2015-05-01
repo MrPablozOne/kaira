@@ -865,7 +865,7 @@ class App:
         for net in work_project.get_nets():
             if net.get_name() is new_net.get_name():
                 self.console_write(
-                    "The test net {0}, in this project, for this transition already exists.\n"
+                    "The test net '{0}', in this project, for this transition already exists.\n"
                         .format(new_net.get_name())
                     , "error")
                 return
