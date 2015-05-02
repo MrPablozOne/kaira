@@ -239,8 +239,8 @@ def contextmenu_transition(config, item, position):
 
     menu1_name = "Create test"
     menu2_name = "Create test to new project"
-    menu3_name = "Store binding - add to actual"
-    menu4_name = "Store binding - rewrite to actual"
+    menu3_name = "Store binding - add to the current"
+    menu4_name = "Store binding - overwrite the current"
 
     if transition.is_collective(): #Disable menuitems
         menu1_name = (menu1_name, False)
