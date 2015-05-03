@@ -851,6 +851,8 @@ class App:
         work_project = self.project
         if test_project is not None:
             work_project = test_project
+        if old_project is None:
+            old_project = self.project
 
         if self.project is None:
             self.console_write(
@@ -927,6 +929,7 @@ class App:
                 os.path.join(
                     test_dir_relative, "{0}.data".format(backward_idtable[place_id]))))
 
+
         test = Test(old_project, id)
         test.set_net_name(new_net.get_name())
         test.set_project_dir(work_project.get_directory())
@@ -935,7 +938,6 @@ class App:
         old_project.add_test(test)
         old_project.save()
         work_project.add_net(new_net)
-        work_project.set_build_net(new_net)
 
         self.console_write(
                 "The test for transition '{0}' has been successfully "
@@ -943,7 +945,6 @@ class App:
                 "success")
 
     def save_binding_for_tests(self, transition_id):
-        print transition_id
         tests = self.project.get_all_tests()
         for test in tests[:]:
             if test.get_project_file() is self.project.get_filename():
@@ -953,7 +954,8 @@ class App:
                 continue
             ret_str = utils.copy_data_test_file_to_new_project_if_exists(self.project.get_directory(), test.get_project_dir(), transition_id)
             if ret_str is not "OK":
-                print "fail test {0}".format(test.get_id())
+                self.console_write("The test data has not been updated to test project {0}"
+                                   .format(test.get_project_dir()), "error")
 
 
 if __name__ == "__main__":
