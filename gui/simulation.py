@@ -287,6 +287,7 @@ class Simulation(EventSource):
                                         test_dir,
                                         "a")
             self.state = "runnning"
+            self.emit_event("success-message", "Binding stored from process '{0}'\n".format(process_id))
             self.controller.run_command_expect_ok(command,
                                                   ok,
                                                   fail,
