@@ -232,8 +232,8 @@ def contextmenu_transition(config, item, position):
     transition = item.owner
     simulation = config.simulation
 
-    menu1_name = "Create test"
-    menu2_name = "Create test to new project"
+    menu1_name = "Generate testing subnet"
+    menu2_name = "Generate testing subnet to new project"
     menu3_name = "Store binding - add to the current"
     menu4_name = "Store binding - overwrite the current"
 
