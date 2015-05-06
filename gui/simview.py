@@ -246,6 +246,16 @@ def contextmenu_transition(config, item, position):
         menu3_name = (menu3_name, False)
         menu4_name = (menu4_name, False)
 
+    transition_id = str(transition.id)
+    tests = simulation.active_project.get_all_tests()
+    for test in tests:
+        transition_test_id = test.get_transition_id()
+        if isinstance(transition_test_id, int):
+            transition_test_id = str(transition_test_id)
+        if transition_id == transition_test_id:
+            menu1_name = (menu1_name, False)
+            break
+
     return [
         (menu1_name,
             lambda w: simulation.emit_event("create-transition-test",
