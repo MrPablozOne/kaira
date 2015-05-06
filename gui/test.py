@@ -26,8 +26,8 @@ class Test:
     def get_id(self):
         return self.id
 
-    def get_name(self):
-        return self.name
+    def get_net_name(self):
+        return self.net_name
 
     def get_project_file(self):
         return self.project_file
@@ -35,8 +35,8 @@ class Test:
     def get_project_dir(self):
         return self.project_dir
 
-    def get_tested_transition(self):
-        return self.transition
+    def get_transition_id(self):
+        return self.transition_id
 
     def as_xml(self):
         e = xml.Element("project_test")
