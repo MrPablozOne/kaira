@@ -64,9 +64,11 @@ class Project(EventSource):
 
     def add_test(self, test):
         self.tests.append(test)
+        self.save()
 
     def delete_test(self, test):
         self.tests.remove(test)
+        self.save()
 
     def get_all_tests(self):
         return self.tests
@@ -149,6 +151,9 @@ class Project(EventSource):
 
     def remove_net(self, net):
         self.nets.remove(net)
+        for test in self.tests[:]:
+            if test.get_net_name() == net.get_name():
+                self.delete_test(test)
         if self.build_net == net:
             self.build_net = self.nets[0]
         self.emit_event("netlist_changed")
