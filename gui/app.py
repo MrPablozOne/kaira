@@ -803,7 +803,8 @@ class App:
         old_project = self.project
         new_project = self.new_project(True, True)
 
-
+        if new_project is None:
+            return
 
         if old_project is new_project:
             return
@@ -815,9 +816,6 @@ class App:
                                "success")
         else:
             self.console_write(return_string, "error")
-
-        #delete net named by new project, then there are only test net
-        new_project.nets = []
 
         #copy project configs & head code & parameters from old to new project
         new_project.set_head_code(old_project.get_head_code())
@@ -938,6 +936,11 @@ class App:
         old_project.add_test(test)
         old_project.save()
         work_project.add_net(new_net)
+        if old_project is not work_project:
+            new_projects_nets = work_project.get_nets()
+            for net in new_projects_nets:
+                if net is not new_net:
+                    work_project.remove_net(net)
 
         self.console_write(
                 "The test for transition '{0}' has been successfully "
