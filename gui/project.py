@@ -152,7 +152,7 @@ class Project(EventSource):
     def remove_net(self, net):
         self.nets.remove(net)
         for test in self.tests[:]:
-            if test.get_net_name() == net.get_name():
+            if test.get_net_name() == net.get_name() and test.get_project_dir() == self.get_directory():
                 self.delete_test(test)
         if self.build_net == net:
             self.build_net = self.nets[0]
