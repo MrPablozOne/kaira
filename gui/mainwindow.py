@@ -199,6 +199,7 @@ class MainWindow(gtk.Window):
         add("Edit _tests", self.app.edit_code_tests, "project")
         menu.append(gtk.SeparatorMenuItem())
         add("Edit _settings", self.app.edit_settings)
+        add("Edit transition tests", self.app.edit_transition_tests, "project")
 
         menu = add_menu("_Build")
 

@@ -51,7 +51,9 @@ class Context {
         void assertEquals(bool (* equal) (const T&, const T&),
                           const T &actual_value,
                           const T &expected_value,
-                          const std::string &message="") {
+                          const std::string &message="",
+                          const bool quitAfterFail = false,
+                          const bool printOkMsg = true) {
 
             std::stringstream result_msg;
             result_msg << "ASSERT EQUALS: ";
@@ -60,8 +62,10 @@ class Context {
             }
 
             if (equal(actual_value, expected_value)) {
-                //result_msg << "[Ok]";
-                //fprintf(stderr, "%s\n", result_msg.str().c_str());
+                if(printOkMsg) {
+                    result_msg << "[Ok]";
+                    fprintf(stderr, "%s\n", result_msg.str().c_str());
+                }
                 //Nothing to write, beacuse i want know only thing, if the test failed
             } else {
                 result_msg << "[Fail] Process: " << process_id()
@@ -70,14 +74,18 @@ class Context {
                 fprintf(stderr, "%s\n", result_msg.str().c_str());
 
                 // if an assert fail then the program will be stopped
-                quit();
+                if(quitAfterFail) {
+                    quit();
+                }
             }
         }
 
         template<typename T>
         void assertEquals(const T &actual_value,
                           const T &expected_value,
-                          const std::string &message="") {
+                          const std::string &message="",
+                          const bool quitAfterFail = false,
+                          const bool printOkMsg = true) {
 
             struct comparator {
                 static bool equal (const T &o1, const T &o2) {
@@ -88,7 +96,9 @@ class Context {
             assertEquals(comparator::equal,
                          actual_value,
                          expected_value,
-                         message);
+                         message,
+                         quitAfterFail,
+                         printOkMsg);
         }
 
 

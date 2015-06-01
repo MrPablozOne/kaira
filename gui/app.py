@@ -1,6 +1,7 @@
 #
 #    Copyright (C) 2010-2013 Stanislav Bohm
 #                  2011       Ondrej Garncarz
+#                  2014-2015 Pavel Siemko
 #
 #    This file is part of Kaira.
 #
@@ -33,8 +34,9 @@ import neteditor
 from simconfig import SimConfigDialog
 from projectconfig import ProjectConfig
 from simulation import Simulation
-from net import Place, Edge
+from net import Place, Edge, Transition
 from test import Test
+import test
 import simview
 import codeedit
 import process
@@ -361,6 +363,15 @@ class App:
         self.window.add_tab(SaveTab("Tests",
                                     widget,
                                     "codetests",
+                                    mainmenu_groups=("project",)))
+
+    def edit_transition_tests(self):
+        if self.window.switch_to_tab_by_key("project_tests"):
+            return
+        widget = test.ProjectTests(self)
+        self.window.add_tab(SaveTab("Transition tests",
+                                    widget,
+                                    "project_tests",
                                     mainmenu_groups=("project",)))
 
     def edit_control_sequences(self):
@@ -883,6 +894,10 @@ class App:
                 [ edge.id for edge in tr_in_edges ]
 
         for edge in tr_out_edges:
+            if edge.get_inscription().find("@") is not -1: #delete code, which set processess
+                edge_code = edge.get_inscription()
+                edge_code = edge_code.split('@')[0]
+                edge.set_inscription(edge_code)
             place_id = edge.to_item.id
             place = new_net.get_item(place_id)
             if place_id in tr_in_place_ids:
@@ -927,6 +942,23 @@ class App:
                 os.path.join(
                     test_dir_relative, "{0}.data".format(backward_idtable[place_id]))))
 
+        #set priority to transition and create the quit transition
+        tr.set_priority("1")
+
+        max_x = 0
+        max_y = 0
+        items = new_net.places() + new_net.transitions()
+        for item in items:
+            if item.box.get_position()[0] > max_x:
+                max_x = item.box.get_position()[0]
+            if item.box.get_position()[1] > max_y:
+                max_y = item.box.get_position()[1]
+
+        quit_tran = Transition(new_net, new_net.new_id(), (max_x+20, max_y+20))
+        quit_tran.set_name("QUIT\nTRANSITION")
+        quit_tran.set_code("\tctx.quit();\n")
+        quit_tran.set_priority("0")
+        new_net.add_item(quit_tran)
 
         test = Test(old_project, id)
         test.set_net_name(new_net.get_name())
@@ -960,6 +992,8 @@ class App:
                 self.console_write("The test data has not been updated to test project {0}"
                                    .format(test.get_project_dir()), "error")
 
+    def get_actual_project(self):
+        return self.project
 
 if __name__ == "__main__":
     args = sys.argv[1:] # Remove "app.py"

@@ -64,11 +64,13 @@ class Project(EventSource):
 
     def add_test(self, test):
         self.tests.append(test)
-        self.save()
+        if os.path.isdir(self.filename) is not True:
+            self.save()
 
     def delete_test(self, test):
         self.tests.remove(test)
-        self.save()
+        if os.path.isdir(self.filename) is not True:
+            self.save()
 
     def get_all_tests(self):
         return self.tests

@@ -252,7 +252,7 @@ def contextmenu_transition(config, item, position):
         transition_test_id = test.get_transition_id()
         if isinstance(transition_test_id, int):
             transition_test_id = str(transition_test_id)
-        if transition_id == transition_test_id:
+        if transition_id == transition_test_id and test.get_project_file() is simulation.active_project.get_filename():
             menu1_name = (menu1_name, False)
             break
 
