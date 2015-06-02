@@ -19,6 +19,7 @@
 
 __author__ = 'Pavel Siemko'
 TEST_BUILD_TARGET = "release"
+TEST_LOGS_DIR_NAME = "Test logs"
 
 import xml.etree.ElementTree as xml
 import gtk
@@ -26,6 +27,8 @@ import gtk
 import process
 from objectlist import ObjectList
 import os
+import utils
+from datetime import datetime
 
 
 class Test(object):
@@ -91,29 +94,42 @@ class Test(object):
         if project is None:
             #error
             return False
+        write_to_log(app,
+                     self.name,
+                     "Test start in time {0}".format(str(datetime.now())),
+                     write_to_console=False,
+                     write_flag='w')
         app.console_write("Building test '{0}' ...\n".format(self.name), "info")
         build_config = project.get_build_config(target)
         app.start_build( project,
                          build_config,
                          lambda: self.run_test(app, target),
-                         lambda: app.console_write("Error in test building", "error"))
+                         lambda: write_to_log(app,
+                                              self.name,
+                                              "Error in test building",
+                                              "error"))
 
     def run_test(self, app, target=TEST_BUILD_TARGET):
+        name = self.name # for inner functions i need define it
         def on_exit(code):
-            app.console_write("Transition test '{0}' returned '{1}'.\n".format(self.name, code),
+            write_to_log(app,
+                         name,
+                         "Transition test '{0}' returned '{1}'.\n".format(self.name, code),
                               "success" if code == 0 else "error")
         def on_line(line, stream):
             if line.startswith("ASSERT"):
-                app.console_write(line, "assert");
+                write_to_log(app, name, line, "assert")
             else:
                 app.console_write_output(line)
             return True
         app.console_write("Build finished ({0})\n".format(target), "success")
-        app.console_write("Test '{0}' started.\n".format(self.name), "success")
+        write_to_log(app,
+                     name,
+                     "Test '{0}' begin.\n".format(self.name),
+                     "success")
         p = process.Process(self.get_executable_filename(), on_line, on_exit)
         p.cwd = self.project_dir
         p.start()
-
 
     def as_xml(self):
         e = xml.Element("project_test")
@@ -124,11 +140,26 @@ class Test(object):
         e.set("transition_id", str(self.transition_id))
         return e
 
+def write_to_log(app, test_name, text, tag_name="normal", write_to_console=True, write_flag='a'):
+    directory = app.get_actual_project().get_directory()
+    tests_directory = os.path.join(directory, TEST_LOGS_DIR_NAME)
+    log_file = os.path.join(tests_directory, "{0}.log".format(test_name))
+    utils.make_file_if_not_exist(log_file)
+    f = open(log_file, write_flag)
+    f.write(text)
+    f.close()
+    if write_to_console:
+        app.console_write(text, tag_name)
+
 class ProjectTests(gtk.VBox):
     def __init__(self, app):
         gtk.VBox.__init__(self)
         self.app = app
         self.project = self.app.get_actual_project()
+
+        directory = self.project.get_directory()
+        tests_directory = os.path.join(directory, TEST_LOGS_DIR_NAME)
+        utils.makedir_if_not_exists(tests_directory)
 
         box = gtk.HBox()
         hbox = gtk.HButtonBox()
@@ -159,6 +190,7 @@ class ProjectTests(gtk.VBox):
         self.objlist.set_size_request(100, 100)
         self.objlist.object_as_row = lambda obj: [ obj, obj.name ]
         self.objlist.row_activated = self.row_activated
+        self.objlist.cursor_changed = self.row_activated
 
         hbox.pack_start(self.objlist, False, False)
         #self.editor = CodeFileEditor(self.app.project.get_syntax_highlight_key())
