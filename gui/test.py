@@ -29,6 +29,8 @@ from objectlist import ObjectList
 import os
 import utils
 from datetime import datetime
+from events import EventSource
+
 
 
 class Test(object):
@@ -89,42 +91,46 @@ class Test(object):
         else:
             return None
 
-    def build_test(self, app, target=TEST_BUILD_TARGET):
+    def build_and_run_test(self, app, project_test, target=TEST_BUILD_TARGET):
+        def fail_callback():
+            write_to_log(app, self.name, "Building error in test '{0}'. Test was not runed.\n".format(self.name),
+                         "error")
+            project_test.emit_event("test-complete", self)
+
         project = self.load_project(app)
         if project is None:
             #error
             return False
         write_to_log(app,
                      self.name,
-                     "Test start in time {0}".format(str(datetime.now())),
+                     "Test start in time {0}\n".format(str(datetime.now())),
                      write_to_console=False,
                      write_flag='w')
         app.console_write("Building test '{0}' ...\n".format(self.name), "info")
         build_config = project.get_build_config(target)
         app.start_build( project,
                          build_config,
-                         lambda: self.run_test(app, target),
-                         lambda: write_to_log(app,
-                                              self.name,
-                                              "Error in test building",
-                                              "error"))
+                         lambda: self.run_test(app, project_test, target),
+                         fail_callback)
 
-    def run_test(self, app, target=TEST_BUILD_TARGET):
-        name = self.name # for inner functions i need define it
+    def run_test(self, app, project_test, target=TEST_BUILD_TARGET):
+
         def on_exit(code):
             write_to_log(app,
-                         name,
-                         "Transition test '{0}' returned '{1}'.\n".format(self.name, code),
+                         self.name,
+                         "Transition test '{0}' returned '{1}' in time {2}.\n".format(self.name, code, str(datetime.now())),
                               "success" if code == 0 else "error")
+            project_test.emit_event("test-complete", self)
+
         def on_line(line, stream):
             if line.startswith("ASSERT"):
-                write_to_log(app, name, line, "assert")
+                write_to_log(app, self.name, line, "assert")
             else:
                 app.console_write_output(line)
             return True
         app.console_write("Build finished ({0})\n".format(target), "success")
         write_to_log(app,
-                     name,
+                     self.name,
                      "Test '{0}' begin.\n".format(self.name),
                      "success")
         p = process.Process(self.get_executable_filename(), on_line, on_exit)
@@ -140,6 +146,7 @@ class Test(object):
         e.set("transition_id", str(self.transition_id))
         return e
 
+
 def write_to_log(app, test_name, text, tag_name="normal", write_to_console=True, write_flag='a'):
     directory = app.get_actual_project().get_directory()
     tests_directory = os.path.join(directory, TEST_LOGS_DIR_NAME)
@@ -151,35 +158,47 @@ def write_to_log(app, test_name, text, tag_name="normal", write_to_console=True,
     if write_to_console:
         app.console_write(text, tag_name)
 
-class ProjectTests(gtk.VBox):
+
+class ProjectTests(gtk.VBox, EventSource):
+    """
+        Events: test-complete
+    """
     def __init__(self, app):
         gtk.VBox.__init__(self)
+        EventSource.__init__(self)
         self.app = app
         self.project = self.app.get_actual_project()
+        self.launched_tests = {}
+        self.launched_tests_count = 0
+
+        self.set_callback("test-complete",
+                          lambda w: self.test_complete(w))
 
         directory = self.project.get_directory()
-        tests_directory = os.path.join(directory, TEST_LOGS_DIR_NAME)
-        utils.makedir_if_not_exists(tests_directory)
+        self.tests_log_directory = os.path.join(directory, TEST_LOGS_DIR_NAME)
+        utils.makedir_if_not_exists(self.tests_log_directory)
 
         box = gtk.HBox()
         hbox = gtk.HButtonBox()
         hbox.set_layout(gtk.BUTTONBOX_START)
-        button = gtk.Button(label= "Odstranit" ,stock = gtk.STOCK_REMOVE)
-        button.connect("clicked",
+        self.button_remove = gtk.Button(label="Remove test")
+        self.button_remove.connect("clicked",
                        lambda w: self.remove_test(self.objlist.selected_object()))
-        hbox.add(button)
-        button = gtk.Button(label = "Spustit", stock = gtk.STOCK_EXECUTE)
-        button.connect("clicked",
-                       lambda w: self.execute(self.objlist.selected_object()))
-        hbox.add(button)
-        button = gtk.Button(label = "Spustit vse")
-        button.connect("clicked",
+        self.button_remove.set_sensitive(False)
+        hbox.add(self.button_remove)
+        self.button_run = gtk.Button(label="Run test")
+        self.button_run.connect("clicked",
+                       lambda w: self.execute(self.objlist.selected_object(), True))
+        self.button_run.set_sensitive(False)
+        hbox.add(self.button_run)
+        self.button_run_all = gtk.Button(label = "Run all tests")
+        self.button_run_all.connect("clicked",
                        lambda w: self.execute_all())
-        hbox.add(button)
-        button = gtk.Button(label = "Spustit neuspesne")
-        button.connect("clicked",
+        hbox.add(self.button_run_all)
+        self.button_run_wrong = gtk.Button(label = "Run unsuccessfully tests")
+        self.button_run_wrong.connect("clicked",
                        lambda w: self.execute_wrongs())
-        hbox.add(button)
+        hbox.add(self.button_run_wrong)
         box.pack_start(hbox, False, False)
 
         self.pack_start(box, False, False)
@@ -239,21 +258,52 @@ class ProjectTests(gtk.VBox):
             self.objlist.select_first()
         self.show_all()
 
-    def execute(self, test):
-        test.build_test(self.app)
-        #test.run_test(self.app)
-
+    def execute(self, test, one_test = False):
+        if one_test:
+            self.launched_tests_count = 1
+        test_return = test.build_and_run_test(self.app, self)
+        if test_return is False:
+            self.launched_tests[test] = False
+            write_to_log(self.app, test.get_name(), "Test '{0}' was not launched.", "error")
 
     def execute_all(self):
         tests = self.project.get_all_tests()
+        self.launched_tests_count = len(tests)
         for test in tests:
-            test.run_test(self.app)
-
+            self.execute(test)
 
     def execute_wrongs(self):
-        None
+        items = self.launched_tests.items()
+        for test, ret in items:
+            if ret is False:
+                self.execute(test)
+
+    def test_complete(self, test):
+        self.launched_tests[test] = None
+        if len(self.launched_tests.keys()) is self.launched_tests_count:
+            self.all_tests_complete()
+
+    def all_tests_complete(self):
+
+        def get_return_string(result):
+            if result:
+                return "Pass"
+            else:
+                return "Failed"
+
+        #Fill launched_tests from None to True or False from test log
+        for test, ret in self.launched_tests.items():
+            if ret is None:
+                self.read_test_log(test)
+
+        #write test results to console
+        for test, ret in self.launched_tests.items():
+            self.app.console_write("Test '{0}' - '{1}'\n".format(test.get_name(), get_return_string(ret)),
+                                   "success" if ret else "error")
 
     def row_activated(self, obj):
+        self.button_remove.set_sensitive(True)
+        self.button_run.set_sensitive(True)
         self.label_test_id.set_text(str(obj.get_id()))
         self.label_test_name.set_text(obj.get_name())
         self.label_project_filename.set_text(obj.get_project_filename())
@@ -277,6 +327,20 @@ class ProjectTests(gtk.VBox):
         tests = self.project.get_all_tests()
         self.objlist.refresh(tests)
         self.cursor_changed(self.objlist.selected_object())
+
+    #set test return to launched_tests by test log
+    def read_test_log(self, test):
+        with open(os.path.join(self.tests_log_directory, "{0}.log".format(test.get_name()))) as f:
+            lines = f.readlines()
+        for line in lines:
+            if "[Fail]" in line:
+                self.launched_tests[test] = False
+                return
+        self.launched_tests[test] = True
+
+
+
+
 
 
 def load_test(element, project, loader):
