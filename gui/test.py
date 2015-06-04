@@ -200,20 +200,15 @@ class ProjectTests(gtk.VBox, EventSource):
                        lambda w: self.execute_wrongs())
         hbox.add(self.button_run_wrong)
         box.pack_start(hbox, False, False)
-
         self.pack_start(box, False, False)
 
         hbox = gtk.HBox()
-
         self.objlist = ObjectList([("_", object), ("Tests", str) ])
         self.objlist.set_size_request(100, 100)
         self.objlist.object_as_row = lambda obj: [ obj, obj.name ]
         self.objlist.row_activated = self.row_activated
         self.objlist.cursor_changed = self.row_activated
-
         hbox.pack_start(self.objlist, False, False)
-        #self.editor = CodeFileEditor(self.app.project.get_syntax_highlight_key())
-        #hbox.pack_start(self.editor)
 
         vbox = gtk.VBox(spacing=10)
         hbox_name = gtk.HBox()
@@ -246,10 +241,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.label_net_name = gtk.Label("")
         hbox_name.pack_start(self.label_net_name, False, False)
         vbox.pack_start(hbox_name, False, False)
-
         hbox.pack_start(vbox)
-
-
         self.pack_start(hbox)
 
         tests = self.project.get_all_tests()
@@ -337,10 +329,6 @@ class ProjectTests(gtk.VBox, EventSource):
                 self.launched_tests[test] = False
                 return
         self.launched_tests[test] = True
-
-
-
-
 
 
 def load_test(element, project, loader):
