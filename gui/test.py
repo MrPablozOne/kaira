@@ -42,6 +42,7 @@ class Test(object):
             self.id = id
         #self.project = project
         self.name = "Test - {0}".format(str(self.id))
+        self.test_status = None
 
     def set_net_name(self, net_name):
         self.net_name = net_name
@@ -95,7 +96,7 @@ class Test(object):
         def fail_callback():
             write_to_log(app, self.name, "Building error in test '{0}'. Test was not runed.\n".format(self.name),
                          "error")
-            project_test.emit_event("test-complete", self)
+            project_test.emit_event("test-complete", self, "error")
 
         project = self.load_project(app)
         if project is None:
@@ -181,6 +182,18 @@ class ProjectTests(gtk.VBox, EventSource):
         box = gtk.HBox()
         hbox = gtk.HButtonBox()
         hbox.set_layout(gtk.BUTTONBOX_START)
+
+        self.label_filter_mode = gtk.Label("Filter mode: ")
+        box.pack_start(self.label_filter_mode, False, False)
+        self.filter = gtk.combo_box_new_text()
+        self.filter.append_text("All")
+        self.filter.append_text("Passed")
+        self.filter.append_text("Failed")
+        self.filter.append_text("Build error")
+        self.filter.set_active(0) # Select 'All' as default
+        self.filter.connect("changed", self.filter_changed)
+        hbox.pack_start(self.filter, False, False)
+
         self.button_remove = gtk.Button(label="Remove test")
         self.button_remove.connect("clicked",
                        lambda w: self.remove_test(self.objlist.selected_object()))
@@ -195,7 +208,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.button_run_all.connect("clicked",
                        lambda w: self.execute_all())
         hbox.add(self.button_run_all)
-        self.button_run_wrong = gtk.Button(label = "Run unsuccessfully tests")
+        self.button_run_wrong = gtk.Button(label = "Run failed tests")
         self.button_run_wrong.connect("clicked",
                        lambda w: self.execute_wrongs())
         hbox.add(self.button_run_wrong)
@@ -203,9 +216,9 @@ class ProjectTests(gtk.VBox, EventSource):
         self.pack_start(box, False, False)
 
         hbox = gtk.HBox()
-        self.objlist = ObjectList([("_", object), ("Tests", str) ])
-        self.objlist.set_size_request(100, 100)
-        self.objlist.object_as_row = lambda obj: [ obj, obj.name ]
+        self.objlist = ObjectList([("_", object), ("Tests", str), ("Test status", str) ])
+        self.objlist.set_size_request(170, 100)
+        self.objlist.object_as_row = lambda obj: [ obj, obj.name, obj.test_status ]
         self.objlist.row_activated = self.row_activated
         self.objlist.cursor_changed = self.row_activated
         hbox.pack_start(self.objlist, False, False)
@@ -245,41 +258,60 @@ class ProjectTests(gtk.VBox, EventSource):
         self.pack_start(hbox)
 
         tests = self.project.get_all_tests()
+        for test in tests:
+            test.test_status = None
         self.objlist.fill(tests)
         if tests:
             self.objlist.select_first()
         self.show_all()
 
-    def execute(self, test, one_test = False):
+    def execute(self, test, one_test=False):
         if one_test:
+            tests = self.project.get_all_tests()
+            for t in tests:
+                t.test_status = None
+            self.objlist.clear()
+            self.objlist.fill(tests)
+            self.launched_tests = {}
             self.launched_tests_count = 1
         test_return = test.build_and_run_test(self.app, self)
         if test_return is False:
-            self.launched_tests[test] = False
+            self.launched_tests[test] = "error"
             write_to_log(self.app, test.get_name(), "Test '{0}' was not launched.", "error")
 
     def execute_all(self):
+        self.launched_tests = {}
         tests = self.project.get_all_tests()
         self.launched_tests_count = len(tests)
         for test in tests:
             self.execute(test)
 
     def execute_wrongs(self):
+        tests = self.project.get_all_tests()
+        for t in tests:
+            t.test_status = None
+        self.objlist.clear()
+        self.objlist.fill(tests)
         items = self.launched_tests.items()
+        self.launched_tests_count = 0
+        self.launched_tests = {}
         for test, ret in items:
             if ret is False:
+                self.launched_tests_count += 1
                 self.execute(test)
 
-    def test_complete(self, test):
-        self.launched_tests[test] = None
+    def test_complete(self, test, status=None):
+        self.launched_tests[test] = status
         if len(self.launched_tests.keys()) is self.launched_tests_count:
             self.all_tests_complete()
 
     def all_tests_complete(self):
 
         def get_return_string(result):
-            if result:
-                return "Pass"
+            if result is "error":
+                return "Build error"
+            elif result:
+                return "Passed"
             else:
                 return "Failed"
 
@@ -290,8 +322,11 @@ class ProjectTests(gtk.VBox, EventSource):
 
         #write test results to console
         for test, ret in self.launched_tests.items():
-            self.app.console_write("Test '{0}' - '{1}'\n".format(test.get_name(), get_return_string(ret)),
+            res = get_return_string(ret)
+            self.app.console_write("Test '{0}' - '{1}'\n".format(test.get_name(), res),
                                    "success" if ret else "error")
+            test.test_status = res
+            self.objlist.update(test)
 
     def row_activated(self, obj):
         self.button_remove.set_sensitive(True)
@@ -319,6 +354,17 @@ class ProjectTests(gtk.VBox, EventSource):
         tests = self.project.get_all_tests()
         self.objlist.refresh(tests)
         self.cursor_changed(self.objlist.selected_object())
+
+    def filter_changed(self, obj):
+        self.objlist.clear()
+        tests = self.project.get_all_tests()
+        status = str(obj.get_active_text())
+        if status == 'All':
+            self.objlist.fill(tests)
+            return
+        for test in tests:
+            if test.test_status == status:
+                self.objlist.add_object(test)
 
     #set test return to launched_tests by test log
     def read_test_log(self, test):
