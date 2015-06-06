@@ -43,6 +43,7 @@ class Test(object):
         #self.project = project
         self.name = "Test - {0}".format(str(self.id))
         self.test_status = None
+        self.test_result = (0,0)  # count (Pass,Failed)
 
     def set_net_name(self, net_name):
         self.net_name = net_name
@@ -97,6 +98,7 @@ class Test(object):
             write_to_log(app, self.name, "Building error in test '{0}'. Test was not runed.\n".format(self.name),
                          "error")
             project_test.emit_event("test-complete", self, "error")
+            self.test_status = "error"
 
         project = self.load_project(app)
         if project is None:
@@ -173,7 +175,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.launched_tests_count = 0
 
         self.set_callback("test-complete",
-                          lambda w: self.test_complete(w))
+                          lambda test, status=None: self.test_complete(test, status))
 
         directory = self.project.get_directory()
         self.tests_log_directory = os.path.join(directory, TEST_LOGS_DIR_NAME)
@@ -296,7 +298,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.launched_tests_count = 0
         self.launched_tests = {}
         for test, ret in items:
-            if ret is False:
+            if ret is False or ret == "error":
                 self.launched_tests_count += 1
                 self.execute(test)
 
@@ -309,11 +311,11 @@ class ProjectTests(gtk.VBox, EventSource):
 
         def get_return_string(result):
             if result is "error":
-                return "Build error"
+                return "Build error", "error"
             elif result:
-                return "Passed"
+                return "Passed", "success"
             else:
-                return "Failed"
+                return "Failed", "error"
 
         #Fill launched_tests from None to True or False from test log
         for test, ret in self.launched_tests.items():
@@ -322,9 +324,21 @@ class ProjectTests(gtk.VBox, EventSource):
 
         #write test results to console
         for test, ret in self.launched_tests.items():
-            res = get_return_string(ret)
-            self.app.console_write("Test '{0}' - '{1}'\n".format(test.get_name(), res),
-                                   "success" if ret else "error")
+            res, tag_name = get_return_string(ret)
+            if ret is "error":
+                self.app.console_write("Test '{0}' - '{1}'\n"
+                                       .format(test.get_name(),
+                                               res,
+                                               test.test_result[0],
+                                               test.test_result[1]),
+                                               tag_name)
+            else:
+                self.app.console_write("Test '{0}' - '{1}' with '{2}' passed and '{3}' failed.\n"
+                                       .format(test.get_name(),
+                                               res,
+                                               test.test_result[0],
+                                               test.test_result[1]),
+                                               tag_name)
             test.test_status = res
             self.objlist.update(test)
 
@@ -370,11 +384,18 @@ class ProjectTests(gtk.VBox, EventSource):
     def read_test_log(self, test):
         with open(os.path.join(self.tests_log_directory, "{0}.log".format(test.get_name()))) as f:
             lines = f.readlines()
+        count_fail = 0
+        count_pass = 0
         for line in lines:
-            if "[Fail]" in line:
-                self.launched_tests[test] = False
-                return
-        self.launched_tests[test] = True
+            if line.startswith("ASSERT EQUALS:"):
+                if "[Fail]" in line:
+                    self.launched_tests[test] = False
+                    count_fail += 1
+                if "[Ok]" in line:
+                    count_pass += 1
+        test.test_result = (count_pass, count_fail)
+        if count_fail is 0:
+            self.launched_tests[test] = True
 
 
 def load_test(element, project, loader):
