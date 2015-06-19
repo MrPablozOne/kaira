@@ -193,15 +193,15 @@ class ProjectTests(gtk.VBox, EventSource):
         self.tests_log_directory = os.path.join(directory, TEST_LOGS_DIR_NAME)
         utils.makedir_if_not_exists(self.tests_log_directory)
 
-        box = gtk.HBox()
+        box = gtk.VBox()
         hbox = gtk.HButtonBox()
         hbox.set_layout(gtk.BUTTONBOX_START)
 
         self.label_filter_mode = gtk.Label("Filter mode: ")
-        box.pack_start(self.label_filter_mode, False, False)
+        #hbox.pack_start(self.label_filter_mode, False, False)
         self.filter = gtk.combo_box_new_text()
         self.filter.append_text("All")
-        self.filter.append_text("Last launched tests")
+        self.filter.append_text("Launched tests")
         self.filter.append_text("Passed")
         self.filter.append_text("Failed")
         self.filter.append_text("Build error")
@@ -225,6 +225,10 @@ class ProjectTests(gtk.VBox, EventSource):
                        lambda w: self.open_test(self.objlist.selected_object()))
         self.button_open.set_sensitive(False)
         hbox.add(self.button_open)
+
+        box.pack_start(hbox, False, False)
+        hbox = gtk.HButtonBox()
+        hbox.set_layout(gtk.BUTTONBOX_START)
 
         self.button_run = gtk.Button(label="Run test")
         self.button_run.connect("clicked",
@@ -459,7 +463,7 @@ class ProjectTests(gtk.VBox, EventSource):
         if status == 'All':
             self.objlist.fill(tests)
             return
-        if status == 'Last launched tests':
+        if status == 'Launched tests':
             self.objlist.fill(self.launched_tests)
             return
         for test in tests:
