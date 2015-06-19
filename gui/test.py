@@ -197,8 +197,6 @@ class ProjectTests(gtk.VBox, EventSource):
         hbox = gtk.HButtonBox()
         hbox.set_layout(gtk.BUTTONBOX_START)
 
-        self.label_filter_mode = gtk.Label("Filter mode: ")
-        #hbox.pack_start(self.label_filter_mode, False, False)
         self.filter = gtk.combo_box_new_text()
         self.filter.append_text("All")
         self.filter.append_text("Launched tests")
