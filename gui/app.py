@@ -961,7 +961,7 @@ class App:
         new_net.add_item(quit_tran)
 
         if work_project is not old_project:
-            test = Test(old_project, id)
+            test = Test(old_project)
             test.set_net_name(new_net.get_name())
             test.set_project_dir(work_project.get_directory())
             test.set_project_file(work_project.get_filename())
@@ -987,9 +987,9 @@ class App:
         for test in tests[:]:
             if test.get_project_file() is self.project.get_filename():
                 continue
-            if not os.path.isdir(test.get_project_dir()): #if dir not exist, delete the test from project
-                self.project.delete_test(test)
-                continue
+            #if not os.path.isdir(test.get_project_dir()): #if dir not exist, delete the test from project
+             #   self.project.delete_test(test)
+              #  continue
             ret_str = utils.copy_data_test_file_to_new_project_if_exists(self.project.get_directory(), test.get_project_dir(), transition_id)
             if ret_str is not "OK":
                 self.console_write("The test data has not been updated to test project {0}"
