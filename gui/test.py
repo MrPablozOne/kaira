@@ -285,7 +285,7 @@ class ProjectTests(gtk.VBox, EventSource):
         hbox_name.pack_start(self.label_net_name, False, False)
         hbox_name= gtk.HBox()
         self.log_view_label = gtk.Label()
-        self.log_view_label.set_markup("<big>Test Log detail</big>")
+        self.log_view_label.set_markup("<big>Last test log detail</big>")
         hbox_name.pack_start(self.log_view_label, False, False)
         vbox.pack_start(hbox_name, False, False)
         self.log_view = Console()
@@ -400,10 +400,11 @@ class ProjectTests(gtk.VBox, EventSource):
             self.label_project_dir.set_text(obj.get_project_dir())
             self.label_net_name.set_text(obj.get_net_name())
             self.log_view.reset()
-            with open(os.path.join(self.tests_log_directory, "{0}.log".format(obj.get_name()))) as f:
-                lines = f.readlines()
-            for line in lines:
-                self.log_view.write(line)
+            if os.path.exists(os.path.join(self.tests_log_directory, "{0}.log".format(obj.get_name()))):
+                with open(os.path.join(self.tests_log_directory, "{0}.log".format(obj.get_name()))) as f:
+                    lines = f.readlines()
+                for line in lines:
+                    self.log_view.write(line)
 
     def save(self):
         project = self.app.get_actual_project()
