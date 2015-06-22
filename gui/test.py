@@ -185,6 +185,8 @@ class ProjectTests(gtk.VBox, EventSource):
         self.project = self.app.get_actual_project()
         self.launched_tests = {}
         self.launched_tests_count = 0
+        self.test_queue = []
+
 
         self.set_callback("test-complete",
                           lambda test, status=None: self.test_complete(test, status))
@@ -301,21 +303,28 @@ class ProjectTests(gtk.VBox, EventSource):
             self.objlist.select_first()
         self.show_all()
 
+    def reset_test_results(self):
+        tests = self.project.get_all_tests()
+        for t in tests:
+            t.test_status = None
+        self.objlist.clear()
+        self.objlist.fill(tests)
+
     def execute(self, test, one_test=False):
         if test is None:
             return
         if one_test:
-            tests = self.project.get_all_tests()
-            for t in tests:
-                t.test_status = None
-            self.objlist.clear()
-            self.objlist.fill(tests)
+            self.reset_test_results()
             self.launched_tests = {}
             self.launched_tests_count = 1
-        test_return = test.build_and_run_test(self.app, self)
-        if test_return is False:
-            self.launched_tests[test] = "error"
-            write_to_log(self.app, test.get_name(), "Test '{0}' was not launched.", "error")
+            # test_return = test.build_and_run_test(self.app, self)
+            # if test_return is False:
+            #     self.launched_tests[test] = "error"
+            #     write_to_log(self.app, test.get_name(), "Test '{0}' was not launched.", "error")
+            self.test_queue.append(test)
+            self.run_test_from_queue()
+        else:
+            self.test_queue.append(test)
 
     def execute_all(self):
         self.launched_tests = {}
@@ -323,13 +332,12 @@ class ProjectTests(gtk.VBox, EventSource):
         self.launched_tests_count = len(tests)
         for test in tests:
             self.execute(test)
+        self.run_test_from_queue()
+
+
 
     def execute_wrongs(self):
-        tests = self.project.get_all_tests()
-        for t in tests:
-            t.test_status = None
-        self.objlist.clear()
-        self.objlist.fill(tests)
+        self.reset_test_results()
         items = self.launched_tests.items()
         self.launched_tests_count = 0
         self.launched_tests = {}
@@ -337,11 +345,26 @@ class ProjectTests(gtk.VBox, EventSource):
             if ret is False or ret == "error":
                 self.launched_tests_count += 1
                 self.execute(test)
+        self.run_test_from_queue()
+
+
+    def run_test_from_queue(self):
+        if len(self.test_queue) is 0 and len(self.launched_tests.keys()) is self.launched_tests_count:
+            self.all_tests_complete()
+            return
+        actual_test = self.test_queue.pop()
+        if actual_test is not None:
+            test_return = actual_test.build_and_run_test(self.app, self)
+            if test_return is False:
+                self.launched_tests[actual_test] = "error"
+                write_to_log(self.app, actual_test.get_name(), "Test '{0}' was not launched.", "error")
 
     def test_complete(self, test, status=None):
         self.launched_tests[test] = status
-        if len(self.launched_tests.keys()) is self.launched_tests_count:
-            self.all_tests_complete()
+        self.run_test_from_queue() #run next test or write test results
+
+        # if len(self.launched_tests.keys()) is self.launched_tests_count:
+        #     self.all_tests_complete()
 
     def all_tests_complete(self):
 
