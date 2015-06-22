@@ -342,6 +342,9 @@ class ProjectTests(gtk.VBox, EventSource):
         self.launched_tests_count = 0
         self.launched_tests = {}
         for test, ret in items:
+            if test not in self.project.get_all_tests():
+                #some tests were been deleted
+                continue
             if ret is False or ret == "error":
                 self.launched_tests_count += 1
                 self.execute(test)
