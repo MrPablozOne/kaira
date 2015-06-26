@@ -48,6 +48,7 @@ class Test(object):
         self.test_status = None
         self.test_result = (0, 0)  # count (Pass,Failed)
         self.test_return = 0  # what return after run test
+        self.test_net_id = 0
 
     def set_net_name(self, net_name):
         self.net_name = net_name
@@ -60,6 +61,12 @@ class Test(object):
 
     def set_transition_id(self, transition_id):
         self.transition_id = transition_id
+
+    def set_test_net_id(self, net_id):
+        self.test_net_id = net_id
+
+    def get_test_net_id(self):
+        return self.test_net_id
 
     def get_id(self):
         return self.id
@@ -117,13 +124,18 @@ class Test(object):
                      self.name,
                      "Building test '{0}' ...\n".format(self.name),
                      "info")
+        net_id = int(self.test_net_id)
+        find_net_by_id = project.find_net(net_id)
+        if self.test_net_id is not None and find_net_by_id is not None:
+            project.set_build_net(find_net_by_id)
         build_config = project.get_build_config(target)
+
         app.start_build( project,
                          build_config,
-                         lambda: self.run_test(app, project_test, target),
+                         lambda: self.run_test(app, project_test, project, target),
                          fail_callback)
 
-    def run_test(self, app, project_test, target=TEST_BUILD_TARGET):
+    def run_test(self, app, project_test, project, target=TEST_BUILD_TARGET):
 
         def on_exit(code):
             write_to_log(app,
@@ -146,7 +158,12 @@ class Test(object):
                      "success")
         p = process.Process(self.get_executable_filename(), on_line, on_exit)
         p.cwd = self.project_dir
-        p.start()
+        if project.get_parameters() is not None:
+            run_params = []
+            for param in project.get_parameters():
+                if param.is_editable() is True:
+                    run_params.append("-p{0}={1}".format(param.name, param.default))
+        p.start(run_params)
 
     def as_xml(self):
         e = xml.Element("project_test")
@@ -155,6 +172,7 @@ class Test(object):
         e.set("project_file", self.project_file)
         e.set("project_dir", self.project_dir)
         e.set("transition_id", str(self.transition_id))
+        e.set("test_net_id", str(self.test_net_id))
         return e
 
     def reset_test_run_results(self):
@@ -205,7 +223,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.filter.append_text("Passed")
         self.filter.append_text("Failed")
         self.filter.append_text("Build error")
-        self.filter.set_active(0) # Select 'All' as default
+        self.filter.set_active(0)  # Select 'All' as default
         self.filter.connect("changed", self.filter_changed)
 
         hbox.pack_start(self.filter, False, False)
@@ -220,7 +238,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.button_remove.set_sensitive(False)
         hbox.add(self.button_remove)
 
-        self.button_open = gtk.Button(label="Open test in new window")
+        self.button_open = gtk.Button(label="Edit test")
         self.button_open.connect("clicked",
                        lambda w: self.open_test(self.objlist.selected_object()))
         self.button_open.set_sensitive(False)
@@ -281,6 +299,12 @@ class ProjectTests(gtk.VBox, EventSource):
         hbox_name.pack_start(self.label_project_dir, False, False)
         vbox.pack_start(hbox_name, False, False)
         hbox_name = gtk.HBox()
+        label = gtk.Label("Test net id: ")
+        hbox_name.pack_start(label, False, False)
+        self.label_net_id = gtk.Label("")
+        hbox_name.pack_start(self.label_net_id, False, False)
+        vbox.pack_start(hbox_name, False, False)
+        hbox_name = gtk.HBox()
         label = gtk.Label("Test net name: ")
         hbox_name.pack_start(label, False, False)
         self.label_net_name = gtk.Label("")
@@ -333,8 +357,6 @@ class ProjectTests(gtk.VBox, EventSource):
         for test in tests:
             self.execute(test)
         self.run_test_from_queue()
-
-
 
     def execute_wrongs(self):
         self.reset_test_results()
@@ -425,6 +447,7 @@ class ProjectTests(gtk.VBox, EventSource):
             self.label_project_filename.set_text(obj.get_project_filename())
             self.label_project_dir.set_text(obj.get_project_dir())
             self.label_net_name.set_text(obj.get_net_name())
+            self.label_net_id.set_text(str(obj.get_test_net_id()))
             self.log_view.reset()
             if os.path.exists(os.path.join(self.tests_log_directory, "{0}.log".format(obj.get_name()))):
                 with open(os.path.join(self.tests_log_directory, "{0}.log".format(obj.get_name()))) as f:
@@ -509,7 +532,7 @@ class ProjectTests(gtk.VBox, EventSource):
                 if "[Ok]" in line:
                     count_pass += 1
         test.test_result = (count_pass, count_fail)
-        if count_fail is 0 and test.test_return is 0:
+        if count_fail is 0 and test.test_return is 0 or 1:
             self.launched_tests[test] = True
         else:
             self.launched_tests[test] = False
@@ -521,11 +544,13 @@ def load_test(element, project, loader):
     project_file = element.get("project_file")
     project_dir = element.get("project_dir")
     transition_id = element.get("transition_id")
+    test_net_id = element.get("test_net_id")
 
     test = Test(project, id)
     test.set_net_name(net_name)
     test.set_project_dir(project_dir)
     test.set_project_file(project_file)
     test.set_transition_id(transition_id)
+    test.set_test_net_id(test_net_id)
 
     return test

@@ -960,14 +960,15 @@ class App:
         quit_tran.set_priority("0")
         new_net.add_item(quit_tran)
 
-        if work_project is not old_project:
-            test = Test(old_project)
-            test.set_net_name(new_net.get_name())
-            test.set_project_dir(work_project.get_directory())
-            test.set_project_file(work_project.get_filename())
-            test.set_transition_id(origin_transition.get_id())
-            old_project.add_test(test)
-            old_project.save()
+
+        test = Test(old_project)
+        test.set_net_name(new_net.get_name())
+        test.set_project_dir(work_project.get_directory())
+        test.set_project_file(work_project.get_filename())
+        test.set_transition_id(origin_transition.get_id())
+        test.set_test_net_id(new_net.get_id())
+        old_project.add_test(test)
+        old_project.save()
         work_project.add_net(new_net)
         if old_project is not work_project:
             new_projects_nets = work_project.get_nets()
