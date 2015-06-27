@@ -65,6 +65,7 @@ class Test(object):
     def set_test_net_id(self, net_id):
         self.test_net_id = net_id
 
+
     def get_test_net_id(self):
         return self.test_net_id
 
@@ -95,6 +96,14 @@ class Test(object):
         d, fname = os.path.split(self.project_file)
         name, ext = os.path.splitext(fname)
         return os.path.join(self.project_dir, TEST_BUILD_TARGET, name)
+
+    def get_project_nets(self, app):
+        proj = self.load_project(app)
+        if proj is None:
+            return None
+        nets = proj.get_nets()
+        nets_dict = {net.get_id(): net.get_name() for net in nets}
+        return nets_dict
 
     def load_project(self, app):
         import loader
@@ -299,16 +308,21 @@ class ProjectTests(gtk.VBox, EventSource):
         hbox_name.pack_start(self.label_project_dir, False, False)
         vbox.pack_start(hbox_name, False, False)
         hbox_name = gtk.HBox()
-        label = gtk.Label("Test net id: ")
+        label = gtk.Label("Currently launched net: ")
         hbox_name.pack_start(label, False, False)
-        self.label_net_id = gtk.Label("")
-        hbox_name.pack_start(self.label_net_id, False, False)
+        self.cb_launched_net = gtk.combo_box_new_text()
+        hbox_name.pack_start(self.cb_launched_net, False, False)
+        self.button_change_launched_net = gtk.Button(label = "Change launch net")
+        self.button_change_launched_net.connect("clicked",
+                                      lambda w: self.change_launched_net())
+        self.button_change_launched_net.set_sensitive(False)
+        hbox_name.pack_start(self.button_change_launched_net, False, False)
         vbox.pack_start(hbox_name, False, False)
         hbox_name = gtk.HBox()
-        label = gtk.Label("Test net name: ")
-        hbox_name.pack_start(label, False, False)
-        self.label_net_name = gtk.Label("")
-        hbox_name.pack_start(self.label_net_name, False, False)
+        # label = gtk.Label("Test net name: ")
+        # hbox_name.pack_start(label, False, False)
+        # self.label_net_name = gtk.Label("")
+        # hbox_name.pack_start(self.label_net_name, False, False)
         hbox_name= gtk.HBox()
         self.log_view_label = gtk.Label()
         self.log_view_label.set_markup("<big>Last test log detail</big>")
@@ -426,15 +440,37 @@ class ProjectTests(gtk.VBox, EventSource):
                                                tag_name)
             test.test_status = res
             self.objlist.update(test)
-        self.row_activated(self.get_selected_object()) #refresh test detail
-        self.objlist.select_object(self.get_selected_object())
+        self.row_activated(self.get_selected_test())  #refresh test detail
+        self.objlist.select_object(self.get_selected_test())
         self.filter.set_active(1)
 
-        #self.button_run.set_sensitive(False)  #If test run, objlist deselected last row
-        #self.button_remove.set_sensitive(False)
+        self.button_run.set_sensitive(False)  #If test run, objlist deselected last select row
+        self.button_remove.set_sensitive(False)
+        self.button_open.set_sensitive(False)
+        self.button_change_launched_net.set_sensitive(False)
 
-    def get_selected_object(self):
+
+
+    def get_selected_test(self):
         return self.last_selected_object
+
+    def change_launched_net(self):
+        test = self.get_selected_test()
+        selected_net = self.cb_launched_net.get_active_text()
+        finded = 0
+        for key, value in self.test_project_nets.items():
+            if value == selected_net:
+                selected_id = key
+                finded += 1
+
+        if finded > 1:
+            self.app.console_write("Selected net is same name as other in test project\n", "error")
+        elif finded == 1:
+            test.set_test_net_id(selected_id)
+            self.app.console_write("Net '{0}' in test '{1}' was selected as launch net.\n".format(selected_net, test.get_name()), "success")
+        else:
+            self.app.console_write("Selected net is not in project nets\n", "error")
+
 
     def row_activated(self, obj):
         self.last_selected_object = obj
@@ -442,12 +478,24 @@ class ProjectTests(gtk.VBox, EventSource):
             self.button_remove.set_sensitive(True)
             self.button_run.set_sensitive(True)
             self.button_open.set_sensitive(True)
+            self.button_change_launched_net.set_sensitive(False)
             self.label_test_id.set_text(str(obj.get_id()))
             self.label_test_name.set_text(obj.get_name())
             self.label_project_filename.set_text(obj.get_project_filename())
             self.label_project_dir.set_text(obj.get_project_dir())
-            self.label_net_name.set_text(obj.get_net_name())
-            self.label_net_id.set_text(str(obj.get_test_net_id()))
+            # self.label_net_name.set_text(obj.get_net_name())
+            self.cb_launched_net.get_model().clear()
+            net_id = int(obj.get_test_net_id())
+            self.test_project_nets = obj.get_project_nets(self.app)
+            if net_id in self.test_project_nets:
+                net_name = self.test_project_nets[net_id]
+            else:
+                net_name = "None selected"
+            self.cb_launched_net.append_text(str(net_name))
+            self.cb_launched_net.set_active(0)
+            for key, value in self.test_project_nets.items():
+                if key != net_id:
+                    self.cb_launched_net.append_text(value)
             self.log_view.reset()
             if os.path.exists(os.path.join(self.tests_log_directory, "{0}.log".format(obj.get_name()))):
                 with open(os.path.join(self.tests_log_directory, "{0}.log".format(obj.get_name()))) as f:
@@ -472,6 +520,7 @@ class ProjectTests(gtk.VBox, EventSource):
         test.set_net_name(nets[0].get_name())
         test.set_project_dir(added_project.get_directory())
         test.set_transition_id(None)
+        test.set_test_net_id(added_project.get_nets()[0].get_id())
         self.project.add_test(test)
         self.project.save()
         tests = self.project.get_all_tests()
@@ -490,9 +539,8 @@ class ProjectTests(gtk.VBox, EventSource):
     def open_test(self, test):
         if test is None:
             return
-        from app import App
-        import extensions
-
+        from app import App  #Used only hear
+        import extensions  #Used only hear
         args = []
         args.append(test.get_project_file())
         extensions.load_extensions()
@@ -532,7 +580,7 @@ class ProjectTests(gtk.VBox, EventSource):
                 if "[Ok]" in line:
                     count_pass += 1
         test.test_result = (count_pass, count_fail)
-        if count_fail is 0 and test.test_return is 0 or 1:
+        if count_fail is 0 and test.test_return is 0:
             self.launched_tests[test] = True
         else:
             self.launched_tests[test] = False
