@@ -346,6 +346,7 @@ class ProjectTests(gtk.VBox, EventSource):
     def execute(self, test, one_test=False):
         if test is None:
             return
+        self.button_sensitive(False)
         if one_test:
             self.reset_test_results()
             self.launched_tests = {}
@@ -360,6 +361,7 @@ class ProjectTests(gtk.VBox, EventSource):
             self.test_queue.append(test)
 
     def execute_all(self):
+        self.button_sensitive(False)
         self.launched_tests = {}
         tests = self.project.get_all_tests()
         self.launched_tests_count = len(tests)
@@ -368,6 +370,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.run_test_from_queue()
 
     def execute_wrongs(self):
+        self.button_sensitive(False)
         self.reset_test_results()
         items = self.launched_tests.items()
         self.launched_tests_count = 0
@@ -438,7 +441,7 @@ class ProjectTests(gtk.VBox, EventSource):
         self.row_activated(self.get_selected_test())  #refresh test detail
         self.objlist.select_object(self.get_selected_test())
         self.filter.set_active(1)
-
+        self.button_sensitive(True)
         self.button_run.set_sensitive(False)  #If test run, objlist deselected last select row
         self.button_remove.set_sensitive(False)
         self.button_open.set_sensitive(False)
@@ -530,6 +533,14 @@ class ProjectTests(gtk.VBox, EventSource):
             self.objlist.clear()
             self.objlist.fill(tests)
             self.objlist.select_first()
+
+    def button_sensitive(self, sensitive):
+        self.button_remove.set_sensitive(sensitive)
+        self.button_run_all.set_sensitive(sensitive)
+        self.button_run.set_sensitive(sensitive)
+        self.button_run_wrong.set_sensitive(sensitive)
+        self.button_add_test.set_sensitive(sensitive)
+        self.button_open.set_sensitive(sensitive)
 
     def open_test(self, test):
         if test is None:
