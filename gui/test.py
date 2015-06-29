@@ -346,8 +346,9 @@ class ProjectTests(gtk.VBox, EventSource):
     def execute(self, test, one_test=False):
         if test is None:
             return
-        self.button_sensitive(False)
         if one_test:
+            self.app.console_write("Running test\n")
+            self.button_sensitive(False)
             self.reset_test_results()
             self.launched_tests = {}
             self.launched_tests_count = 1
@@ -362,6 +363,7 @@ class ProjectTests(gtk.VBox, EventSource):
 
     def execute_all(self):
         self.button_sensitive(False)
+        self.app.console_write("Running tests\n")
         self.launched_tests = {}
         tests = self.project.get_all_tests()
         self.launched_tests_count = len(tests)
@@ -371,6 +373,7 @@ class ProjectTests(gtk.VBox, EventSource):
 
     def execute_wrongs(self):
         self.button_sensitive(False)
+        self.app.console_write("Running tests\n")
         self.reset_test_results()
         items = self.launched_tests.items()
         self.launched_tests_count = 0
@@ -438,7 +441,7 @@ class ProjectTests(gtk.VBox, EventSource):
                                                tag_name)
             test.test_status = res
             self.objlist.update(test)
-        self.app.console_write("All Tests complete", "success")
+        self.app.console_write("All Tests complete\n", "success")
         self.row_activated(self.get_selected_test())  #refresh test detail
         self.objlist.select_object(self.get_selected_test())
         self.filter.set_active(1)
