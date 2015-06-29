@@ -438,6 +438,7 @@ class ProjectTests(gtk.VBox, EventSource):
                                                tag_name)
             test.test_status = res
             self.objlist.update(test)
+        self.app.console_write("All Tests complete", "success")
         self.row_activated(self.get_selected_test())  #refresh test detail
         self.objlist.select_object(self.get_selected_test())
         self.filter.set_active(1)
